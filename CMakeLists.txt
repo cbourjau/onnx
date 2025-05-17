@@ -559,7 +559,7 @@ if(ONNX_BUILD_PYTHON)
   target_include_directories(onnx_cpp2py_export PUBLIC "${pybind11_INCLUDE_DIRS}")
 
   if(APPLE)
-    target_link_options(onnx_cpp2py_export PRIVATE "-undefined dynamic_lookup")
+    # target_link_options(onnx_cpp2py_export PRIVATE "-undefined dynamic_lookup")
     target_link_libraries(onnx_cpp2py_export PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,onnx>)
   elseif(MSVC)
     # In MSVC, we will add whole archive in default
@@ -634,7 +634,7 @@ if(ONNX_USE_ASAN AND NOT MSVC)
 endif()
 
 if(APPLE)
-  target_link_options(onnx PRIVATE "-undefined dynamic_lookup")
+  # target_link_options(onnx PRIVATE "-undefined dynamic_lookup -v")
 endif()
 
 install(DIRECTORY ${ONNX_ROOT}/onnx
