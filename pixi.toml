@@ -6,7 +6,8 @@ name = "onnx"
 platforms = ["osx-arm64", "linux-64"]
 
 [tasks.build]
-cmd = "pip install --no-deps --ignore-installed --verbose --no-build-isolation ."
+# Some shells don't accept overwriting variables(?)
+cmd = 'export CMAKE_ARGS="$CMAKE_ARGS $CMAKE_EXTRA_ARGS" && pip install --no-deps --ignore-installed --verbose --no-build-isolation .'
 [tasks.gen-docs]
 depends-on = "build"
 cmd = "python onnx/defs/gen_doc.py"
@@ -15,7 +16,7 @@ cmd = "python onnx/defs/gen_doc.py"
 ONNX_ML="1"
 ONNX_BUILD_TESTS="1"
 CONDA_PREFIX="${PREFIX}"
-CMAKE_ARGS="-DONNX_USE_PROTOBUF_SHARED_LIBS=ON -DBUILD_SHARED_LIBS=ON -DONNX_USE_LITE_PROTO=ON"
+CMAKE_EXTRA_ARGS="-DONNX_USE_PROTOBUF_SHARED_LIBS=OFF"
 
 [dependencies]
 c-compiler = ">=1.8.0"
