@@ -1,7 +1,7 @@
 [project]
-authors = ["Christian Bourjau <christian.bourjau@quantco.com>"]
+authors = ["ONNX Contributors <onnx-technical-discuss@lists.lfaidata.foundation>"]
 channels = ["conda-forge"]
-description = "Add a short description here"
+description = "Open Neural Network Exchange"
 name = "onnx"
 platforms = ["osx-arm64", "linux-64"]
 
