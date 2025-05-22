@@ -15,7 +15,7 @@ cmd = "python onnx/defs/gen_doc.py"
 ONNX_ML="1"
 ONNX_BUILD_TESTS="1"
 CONDA_PREFIX="${PREFIX}"
-CMAKE_EXTRA_ARGS="-DONNX_USE_PROTOBUF_SHARED_LIBS=OFF"
+CMAKE_EXTRA_ARGS="-DONNX_USE_PROTOBUF_SHARED_LIBS=ON"
 
 [dependencies]
 c-compiler = ">=1.8.0"
@@ -25,12 +25,12 @@ libdate = ">=3.0.1,<4"
 make = "*"
 ml_dtypes = ">=0.5.1"
 ninja = "*"
-numpy = ">=2.2.2"
+numpy = ">=1.22.0"
 packaging = ">=24.1"
 parameterized = ">=0.9.0"
 pip = ">=25.0"
-protobuf = "*"
-python = ">=3.10"
+protobuf = ">=4.25.1"
+python = ">=3.9"
 setuptools = ">=75.8.0"
 twine = ">=6.1.0,<7"
 wheel = ">=0.45.1"
@@ -46,6 +46,11 @@ pytest-xdist = ">=3.6.1"
 
 [feature.test.tasks.test]
 cmd = "pytest tests"
+
+[feature.oldies.dependencies]
+protobuf = "==4.25.1"
+python = "==3.9.22"
+numpy = "==1.22.0"
 
 
 [feature.lint.dependencies]
@@ -63,7 +68,5 @@ lintrunner-run = "lintrunner --all-files"
 
 
 [environments]
-# This table maps "environment names" to a list of **features**
-# (i.e. not a list of other environments).  Environments and features
-# may have overlapping names.
 default = ["test", "lint"]
+oldies = ["test", "lint", "oldies"]

@@ -7,7 +7,7 @@ concurrency:
 
 jobs:
   build-install-lint:
-    name: Build, install, and lint (${{ matrix.os }})
+    name: Build, install, and lint (${{ matrix.os }}, ${{ matrix.environment }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -15,6 +15,9 @@ jobs:
         os:
           - ubuntu-latest
           - macos-latest
+        environment:
+          - default
+          - oldies
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
@@ -27,8 +30,8 @@ jobs:
         with:
           environments: ${{ matrix.environment }}
       - name: Install repository
-        run: pixi run build
+        run: pixi run -e ${{ matrix.environment }} build
       - name: lintrunner-init
-        run: pixi run lintrunner-init
+        run: pixi run -e ${{ matrix.environment }} lintrunner-init
       - name: lintrunner-run
-        run: pixi run lintrunner-run
+        run: pixi run -e ${{ matrix.environment }} lintrunner-run
