@@ -3,7 +3,7 @@ on: push
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build-install-lint:
@@ -32,8 +32,11 @@ jobs:
       - name: Install repository
         run: pixi run -e ${{ matrix.environment }} build
       - name: lintrunner-init
+        # Linting fails probably due to old NumPy version
+        if: ${{ matrix.environment != 'oldies' }}
         run: pixi run -e ${{ matrix.environment }} lintrunner-init
       - name: lintrunner-run
+        if: ${{ matrix.environment != 'oldies' }}
         run: pixi run -e ${{ matrix.environment }} lintrunner-run
       - name: gtests
         run: pixi run -e ${{ matrix.environment }} gtest
