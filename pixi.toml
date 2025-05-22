@@ -3,7 +3,7 @@ authors = ["ONNX Contributors <onnx-technical-discuss@lists.lfaidata.foundation>
 channels = ["conda-forge"]
 description = "Open Neural Network Exchange"
 name = "onnx"
-platforms = ["osx-arm64", "linux-64"]
+platforms = ["osx-arm64", "linux-64", "win-64"]
 
 [tasks.build]
 # Some shells don't accept overwriting variables(?)
