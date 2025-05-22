@@ -35,3 +35,7 @@ jobs:
         run: pixi run -e ${{ matrix.environment }} lintrunner-init
       - name: lintrunner-run
         run: pixi run -e ${{ matrix.environment }} lintrunner-run
+      - name: gtests
+        run: pixi run -e ${{ matrix.environment }} gtest
+      - name: pytest
+        run: pixi run -e ${{ matrix.environment }} pytest

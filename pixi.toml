@@ -7,35 +7,43 @@ platforms = ["osx-arm64", "linux-64"]
 
 [tasks.build]
 cmd = 'export CMAKE_ARGS="$CMAKE_ARGS $CMAKE_EXTRA_ARGS" && pip install --no-deps --ignore-installed --verbose --no-build-isolation .'
-[tasks.gen-docs]
-depends-on = "build"
-cmd = "python onnx/defs/gen_doc.py"
-
 [tasks.build.env]
 ONNX_ML="1"
 ONNX_BUILD_TESTS="1"
 CONDA_PREFIX="${PREFIX}"
 CMAKE_EXTRA_ARGS="-DONNX_USE_PROTOBUF_SHARED_LIBS=ON"
 
+[tasks.gen-docs]
+depends-on = "build"
+cmd = "python onnx/defs/gen_doc.py"
+
+[tasks.gtest]
+cmd = ".setuptools-cmake-build/onnx_gtests"
+
+[tasks.pytest]
+cmd = "pytest"
+
 [dependencies]
 c-compiler = ">=1.8.0"
 cmake = ">=3.31.5"
 cxx-compiler = ">=1.8.0"
+google-re2 = ">=1.1.20240702,<2"
 libdate = ">=3.0.1,<4"
+libprotobuf = "*"
 make = "*"
 ml_dtypes = ">=0.5.1"
 ninja = "*"
 numpy = ">=1.22.0"
 packaging = ">=24.1"
 parameterized = ">=0.9.0"
+pillow = ">=11.2.1,<12"
 pip = ">=25.0"
 protobuf = ">=4.25.1"
+pybind11 = ">=2.13.6"
 python = ">=3.9"
 setuptools = ">=75.8.0"
 twine = ">=6.1.0,<7"
 wheel = ">=0.45.1"
-pybind11 = ">=2.13.6"
-libprotobuf = "*"
 
 
 [feature.test.dependencies]
