@@ -5,6 +5,7 @@
 name: Pixi CI
 
 on:
+  push:
   schedule:
     # run weekly on Sunday 23:59
     - cron:  '29 23 * * SUN'
