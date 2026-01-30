@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-[project]
+[workspace]
 authors = ["ONNX Contributors <onnx-technical-discuss@lists.lfaidata.foundation>"]
 channels = ["conda-forge"]
 description = "Open Neural Network Exchange"
@@ -29,21 +29,19 @@ cmd = ".setuptools-cmake-build/Release/onnx_gtests.exe"
 [tasks.pytest]
 cmd = "pytest"
 
-[build-dependencies]
+[dependencies]
+packaging = ">=24.1"
+python = ">=3.9"
+ml_dtypes = ">=0.5.1"
+libdate = ">=3.0.1,<4"
+libprotobuf = "*"
+pip = ">=25.0"
+nanobind = ">=2.8.0"
 c-compiler = ">=1.8.0"
 cmake = ">=3.31.5"
 cxx-compiler = ">=1.8.0"
 make = "*"
 ninja = "*"
-[host-dependencies]
-libdate = ">=3.0.1,<4"
-libprotobuf = "*"
-pip = ">=25.0"
-nanobind = ">=2.8.0"
-[dependencies]
-packaging = ">=24.1"
-python = ">=3.9"
-ml_dtypes = ">=0.5.1"
 
 [feature.dev.dependencies]
 # follows requirements-dev.txt
@@ -72,10 +70,10 @@ lintrunner-init = "lintrunner init"
 lintrunner-run = "lintrunner --all-files"
 [feature.lint.dependencies]
 # follows requirements-lintrunner.txt
-ruff = "==0.13.1"
-mypy = "==1.17.1"
-types-protobuf = "==6.30.2.20250516"
-clang-format = ">=20.1.5"
+ruff = "==0.14.10"
+mypy = "==1.10.1"
+types-protobuf = "==6.32.1.20250918"
+clang-format = ">=21.1.8"
 [feature.lint.pypi-dependencies]
 lintrunner = ">=0.10.7"
 lintrunner-adapters = ">=0.12.3"
