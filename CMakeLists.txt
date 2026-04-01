@@ -135,22 +135,8 @@ if(ONNX_BUILD_PYTHON)
   set(python_dev_component Development.Module Development.SABIModule)
 endif()
 
-if(CMAKE_CROSSCOMPILING)
-  # When cross-compiling, the interpreter and the compiling/linking steps
-  # must use a different package. See the discussion about this at
-  # https://gitlab.kitware.com/cmake/cmake/-/issues/25145
-  if(ONNX_BUILD_PYTHON)
-    find_package(Python3 REQUIRED COMPONENTS ${python_dev_component})
-  endif()
-  find_package(Python REQUIRED COMPONENTS Interpreter)
-  set(ONNX_PYTHON_INTERPRETER Python::Interpreter)
-else()
-  find_package(Python3 REQUIRED COMPONENTS Interpreter ${python_dev_component})
-  # Find Python for nanobind
-  set(Python_EXECUTABLE ${Python3_EXECUTABLE})
-  find_package(Python REQUIRED COMPONENTS Interpreter ${python_dev_component})
-  set(ONNX_PYTHON_INTERPRETER Python3::Interpreter)
-endif()
+find_package(Python REQUIRED COMPONENTS Interpreter Development)
+set(ONNX_PYTHON_INTERPRETER Python::Interpreter)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "AIX")
   set(CMAKE_NO_SYSTEM_FROM_IMPORTED 1)
@@ -426,7 +412,7 @@ if(ONNX_BUILD_PYTHON)
   # find system nanobind
   if(NOT DEFINED nanobind_DIR OR "${nanobind_DIR}" STREQUAL "")
     execute_process(
-      COMMAND ${Python_EXECUTABLE} -m nanobind --cmake-dir
+      COMMAND ${Python_EXECUTABLE} -m nanobind --cmake_dir
       RESULT_VARIABLE NANOBIND_CMAKE_RESULT
       OUTPUT_VARIABLE NANOBIND_CMAKE_DIR
       OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -435,29 +421,12 @@ if(ONNX_BUILD_PYTHON)
       set(nanobind_DIR "${NANOBIND_CMAKE_DIR}")
     endif()
   endif()
-  find_package(nanobind CONFIG QUIET)
-  if(NOT nanobind_FOUND)
-    if(FETCHCONTENT_FULLY_DISCONNECTED)
-      message(FATAL_ERROR
-        "nanobind not found while FETCHCONTENT_FULLY_DISCONNECTED is ON. "
-        "Provide nanobind locally (nanobind_DIR/CMAKE_PREFIX_PATH) or use a "
-        "FetchContent dependency provider for first-run offline builds.")
-    endif()
-    include(FetchContent)
-
-    FetchContent_Declare(
-      nanobind
-      GIT_REPOSITORY https://github.com/wjakob/nanobind.git
-      GIT_TAG v2.10.2
-      GIT_SHALLOW TRUE
-    )
-    FetchContent_MakeAvailable(nanobind)
-  endif()
+  find_package(nanobind REQUIRED)
 
   # Configure nanobind: https://nanobind.readthedocs.io/en/latest/api_cmake.html
   nanobind_add_module(
     onnx_cpp2py_export
-    NB_STATIC NB_DOMAIN onnx STABLE_ABI FREE_THREADED LTO
+    NB_STATIC NB_DOMAIN onnx FREE_THREADED LTO
     "${ONNX_ROOT}/onnx/cpp2py_export.cc" ${ONNX_SRCS} ${ONNX_PROTO_SRCS})
   add_dependencies(onnx_cpp2py_export onnx)
 endif()
