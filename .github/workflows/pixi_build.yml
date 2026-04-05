@@ -34,9 +34,9 @@ jobs:
           - ubuntu-latest
           - macos-latest
           - windows-latest
-        environment:
-          - default
+        environment-suffix:
           - oldies
+          - py314
     steps:
       - name: Checkout branch
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -45,17 +45,19 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Set up pixi
-        uses: prefix-dev/setup-pixi@v0.9.4
+        uses: prefix-dev/setup-pixi@1b2de7f3351f171c8b4dfeb558c639cb58ed4ec0 # v0.9.5
         with:
-          environments: ${{ matrix.environment }}
-      - name: Install repository
-        run: pixi run -e ${{ matrix.environment }} install
+          environments: build-${{ matrix.environment-suffix }} run-${{ matrix.environment-suffix }}
+      - name: Build repository
+        run: pixi run -e build-${{ matrix.environment-suffix }} build
       - name: gtests
-        run: pixi run -e ${{ matrix.environment }} gtest
+        run: pixi run -e build-${{ matrix.environment-suffix }} gtest
+      - name: Pip-install repository
+        run: pixi run -e run-${{ matrix.environment-suffix }} install
       - name: pytest
-        run: pixi run -e ${{ matrix.environment }} pytest
+        run: pixi run -e run-${{ matrix.environment-suffix }} pytest
       - name: Issue on failure
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         if: ${{ failure() && github.ref == 'refs/heads/main' }}
         with:
           script: |
