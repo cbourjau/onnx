@@ -29,6 +29,7 @@ dependencies = [
 
 [project.optional-dependencies]
 reference = ["Pillow"]
+test = ["pytest", "parameterized", "Pillow"]
 
 [project.urls]
 Homepage = "https://onnx.ai/"
@@ -97,7 +98,7 @@ build = "cp313-pyodide_wasm32"
 
 [tool.cibuildwheel]
 test-command = "pytest {project}/onnx/test"
-test-requires = ["pytest", "parameterized", "Pillow"]
+test-extras = ["test"]
 
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux_2_28"
