@@ -14,6 +14,7 @@
 #include "onnx/defs/data_propagators.h"
 #include "onnx/defs/doc_strings.h"
 #include "onnx/defs/function.h"
+#include "onnx/defs/generated/op_specs_generated.h"
 #include "onnx/defs/tensor/utils.h"
 #include "onnx/defs/tensor_proto_util.h"
 #include "onnx/defs/type_builders.h"
@@ -501,25 +502,7 @@ ONNX_OPERATOR_SET_SCHEMA(
     Concat,
     13,
     OpSchema()
-        .Attr(
-            "axis",
-            "Which axis to concat on. A negative value means counting dimensions from the back. "
-            "Accepted range is [-r, r-1] where r = rank(inputs)..",
-            AttributeProto::INT)
-        .SetDoc(
-            "Concatenate a list of tensors into a single tensor. "
-            "All input tensors must have the same shape, except for the dimension size of the axis to concatenate on.")
-        .Input(
-            0,
-            "inputs",
-            "List of tensors for concatenation",
-            "T",
-            OpSchema::Variadic,
-            true,
-            1,
-            OpSchema::Differentiable)
-        .Output(0, "concat_result", "Concatenated tensor", "T", OpSchema::Single, true, 1, OpSchema::Differentiable)
-        .TypeConstraint("T", OpSchema::all_tensor_types_ir4(), "Constrain output types to any tensor type.")
+        .FillUsing(Concat_v13_FillSpec)
         .TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
           propagateElemTypeFromInputToOutput(ctx, 0, 0);
           auto numInputs = ctx.getNumInputs();

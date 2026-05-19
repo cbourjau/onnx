@@ -15,6 +15,7 @@
 #include "onnx/defs/data_propagators.h"
 #include "onnx/defs/doc_strings.h"
 #include "onnx/defs/function.h"
+#include "onnx/defs/generated/op_specs_generated.h"
 #include "onnx/defs/tensor/utils.h"
 #include "onnx/defs/type_builders.h"
 
@@ -2154,78 +2155,66 @@ ONNX_OPERATOR_SET_SCHEMA(
 ONNX_OPERATOR_SET_SCHEMA(
     Concat,
     11,
-    OpSchema()
-        .Attr(
-            "axis",
-            "Which axis to concat on. A negative value means counting dimensions from the back. "
-            "Accepted range is [-r, r-1] where r = rank(inputs)..",
-            AttributeProto::INT)
-        .SetDoc(
-            "Concatenate a list of tensors into a single tensor. "
-            "All input tensors must have the same shape, except for the dimension size of the axis to concatenate on.")
-        .Input(0, "inputs", "List of tensors for concatenation", "T", OpSchema::Variadic)
-        .Output(0, "concat_result", "Concatenated tensor", "T")
-        .TypeConstraint("T", OpSchema::all_tensor_types(), "Constrain output types to any tensor type.")
-        .TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-          propagateElemTypeFromInputToOutput(ctx, 0, 0);
-          auto numInputs = ctx.getNumInputs();
-          if (numInputs < 1 || !hasNInputShapes(ctx, numInputs)) {
-            return;
-          }
+    OpSchema().FillUsing(Concat_v11_FillSpec).TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
+      propagateElemTypeFromInputToOutput(ctx, 0, 0);
+      auto numInputs = ctx.getNumInputs();
+      if (numInputs < 1 || !hasNInputShapes(ctx, numInputs)) {
+        return;
+      }
 
-          auto rank = ctx.getInputType(0)->tensor_type().shape().dim_size();
+      auto rank = ctx.getInputType(0)->tensor_type().shape().dim_size();
 
-          auto axisAttr = ctx.getAttribute("axis");
-          if (!axisAttr) {
-            fail_shape_inference("Required attribute axis is missing");
-          }
-          int axis = static_cast<int>(axisAttr->i());
-          if (axis < -rank || axis >= rank) {
-            fail_shape_inference("axis must be in [-rank, rank-1].");
-          }
-          if (axis < 0) {
-            axis += rank;
-          }
+      auto axisAttr = ctx.getAttribute("axis");
+      if (!axisAttr) {
+        fail_shape_inference("Required attribute axis is missing");
+      }
+      int axis = static_cast<int>(axisAttr->i());
+      if (axis < -rank || axis >= rank) {
+        fail_shape_inference("axis must be in [-rank, rank-1].");
+      }
+      if (axis < 0) {
+        axis += rank;
+      }
 
-          if (numInputs == 1) {
-            propagateShapeFromInputToOutput(ctx, 0, 0);
-            return;
-          }
+      if (numInputs == 1) {
+        propagateShapeFromInputToOutput(ctx, 0, 0);
+        return;
+      }
 
-          bool all_lengths_known = true;
-          int total_length = 0;
+      bool all_lengths_known = true;
+      int total_length = 0;
 
-          auto output_shape = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
+      auto output_shape = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
 
-          for (int64_t i = 0; i < rank; ++i) {
-            output_shape->add_dim();
-          }
+      for (int64_t i = 0; i < rank; ++i) {
+        output_shape->add_dim();
+      }
 
-          for (size_t i = 0; i < numInputs; i++) {
-            const auto& shape = ctx.getInputType(i)->tensor_type().shape();
-            if (shape.dim_size() != rank) {
-              fail_shape_inference(
-                  "All inputs to Concat must have same rank. Input ", i, " has rank ", shape.dim_size(), " != ", rank);
+      for (size_t i = 0; i < numInputs; i++) {
+        const auto& shape = ctx.getInputType(i)->tensor_type().shape();
+        if (shape.dim_size() != rank) {
+          fail_shape_inference(
+              "All inputs to Concat must have same rank. Input ", i, " has rank ", shape.dim_size(), " != ", rank);
+        }
+        for (int j = 0; j < rank; j++) {
+          if (j == axis) {
+            if (shape.dim(j).has_dim_value()) {
+              total_length += static_cast<int>(shape.dim(j).dim_value());
+            } else {
+              all_lengths_known = false;
             }
-            for (int j = 0; j < rank; j++) {
-              if (j == axis) {
-                if (shape.dim(j).has_dim_value()) {
-                  total_length += static_cast<int>(shape.dim(j).dim_value());
-                } else {
-                  all_lengths_known = false;
-                }
-              } else {
-                auto& output_dim = *output_shape->mutable_dim(j);
-                const auto& input_dim = shape.dim(j);
-                mergeInDimensionInfo(input_dim, output_dim, j);
-              }
-            }
+          } else {
+            auto& output_dim = *output_shape->mutable_dim(j);
+            const auto& input_dim = shape.dim(j);
+            mergeInDimensionInfo(input_dim, output_dim, j);
           }
+        }
+      }
 
-          if (all_lengths_known) {
-            output_shape->mutable_dim(axis)->set_dim_value(total_length);
-          }
-        }));
+      if (all_lengths_known) {
+        output_shape->mutable_dim(axis)->set_dim_value(total_length);
+      }
+    }));
 
 static constexpr const char* Split_ver11_doc =
     R"DOC(Split a tensor into a list of tensors, along the specified
@@ -5630,84 +5619,65 @@ ONNX_OPERATOR_SET_SCHEMA(
           }
         }));
 
-static constexpr const char* Concat_ver1_doc = R"DOC(Concatenate a list of tensors into a single tensor)DOC";
-
-ONNX_OPERATOR_SET_SCHEMA(
-    Concat,
-    1,
-    OpSchema()
-        .Attr("axis", "Which axis to concat on.  Default value is 1.", AttributeProto::INT, OPTIONAL_VALUE)
-        .SetDoc(Concat_ver1_doc)
-        .Input(0, "inputs", "List of tensors for concatenation", "T", OpSchema::Variadic)
-        .Output(0, "concat_result", "Concatenated tensor", "T")
-        .TypeConstraint(
-            "T",
-            {types::Float16, types::Float, types::Double},
-            "Constrain output types to float tensors."));
+ONNX_OPERATOR_SET_SCHEMA(Concat, 1, OpSchema().FillUsing(Concat_v1_FillSpec));
 
 ONNX_OPERATOR_SET_SCHEMA(
     Concat,
     4,
-    OpSchema()
-        .Attr("axis", "Which axis to concat on", AttributeProto::INT)
-        .SetDoc("Concatenate a list of tensors into a single tensor")
-        .Input(0, "inputs", "List of tensors for concatenation", "T", OpSchema::Variadic)
-        .Output(0, "concat_result", "Concatenated tensor", "T")
-        .TypeConstraint("T", OpSchema::all_tensor_types(), "Constrain output types to any tensor type.")
-        .TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-          propagateElemTypeFromInputToOutput(ctx, 0, 0);
-          auto numInputs = ctx.getNumInputs();
-          if (numInputs < 1 || !hasNInputShapes(ctx, numInputs)) {
-            return;
-          }
+    OpSchema().FillUsing(Concat_v4_FillSpec).TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
+      propagateElemTypeFromInputToOutput(ctx, 0, 0);
+      auto numInputs = ctx.getNumInputs();
+      if (numInputs < 1 || !hasNInputShapes(ctx, numInputs)) {
+        return;
+      }
 
-          auto rank = ctx.getInputType(0)->tensor_type().shape().dim_size();
+      auto rank = ctx.getInputType(0)->tensor_type().shape().dim_size();
 
-          auto axisAttr = ctx.getAttribute("axis");
-          if (!axisAttr) {
-            fail_shape_inference("Required attribute axis is missing");
-          }
-          int axis = static_cast<int>(axisAttr->i());
-          if (rank <= axis) {
-            fail_shape_inference("rank must be greater than axis");
-          }
-          if (axis < 0) {
-            return;
-          }
+      auto axisAttr = ctx.getAttribute("axis");
+      if (!axisAttr) {
+        fail_shape_inference("Required attribute axis is missing");
+      }
+      int axis = static_cast<int>(axisAttr->i());
+      if (rank <= axis) {
+        fail_shape_inference("rank must be greater than axis");
+      }
+      if (axis < 0) {
+        return;
+      }
 
-          bool all_lengths_known = true;
-          int total_length = 0;
+      bool all_lengths_known = true;
+      int total_length = 0;
 
-          auto output_shape = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
+      auto output_shape = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
 
-          for (int64_t i = 0; i < rank; ++i) {
-            output_shape->add_dim();
-          }
+      for (int64_t i = 0; i < rank; ++i) {
+        output_shape->add_dim();
+      }
 
-          for (size_t i = 0; i < numInputs; i++) {
-            const auto& shape = ctx.getInputType(i)->tensor_type().shape();
-            if (shape.dim_size() != rank) {
-              fail_shape_inference("All inputs to Concat must have same rank");
+      for (size_t i = 0; i < numInputs; i++) {
+        const auto& shape = ctx.getInputType(i)->tensor_type().shape();
+        if (shape.dim_size() != rank) {
+          fail_shape_inference("All inputs to Concat must have same rank");
+        }
+        for (int j = 0; j < rank; j++) {
+          if (j == axis) {
+            if (shape.dim(j).has_dim_value()) {
+              total_length += static_cast<int>(shape.dim(j).dim_value());
+            } else {
+              all_lengths_known = false;
             }
-            for (int j = 0; j < rank; j++) {
-              if (j == axis) {
-                if (shape.dim(j).has_dim_value()) {
-                  total_length += static_cast<int>(shape.dim(j).dim_value());
-                } else {
-                  all_lengths_known = false;
-                }
-              } else {
-                auto& output_dim = *output_shape->mutable_dim(j);
-                const auto& input_dim = shape.dim(j);
-                mergeInDimensionInfo(input_dim, output_dim, j);
-              }
-            }
+          } else {
+            auto& output_dim = *output_shape->mutable_dim(j);
+            const auto& input_dim = shape.dim(j);
+            mergeInDimensionInfo(input_dim, output_dim, j);
           }
+        }
+      }
 
-          if (all_lengths_known) {
-            output_shape->mutable_dim(axis)->set_dim_value(total_length);
-          }
-        }));
+      if (all_lengths_known) {
+        output_shape->mutable_dim(axis)->set_dim_value(total_length);
+      }
+    }));
 
 static constexpr const char* Split_ver1_doc =
     R"DOC(Split a tensor into a list of tensors, along the specified

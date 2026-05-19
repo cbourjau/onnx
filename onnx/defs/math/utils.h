@@ -17,7 +17,7 @@ namespace defs {
 namespace math {
 namespace utils {
 
-std::function<void(OpSchema&)> TopKOpGenerator(std::vector<std::string> allowed_types);
+void TopKShapeInference(InferenceContext& ctx);
 
 // Unary elementwise ops on float types: T input -> T output, no attrs, no function body.
 std::function<void(OpSchema&)> UnaryFloatMathOpGenerator(

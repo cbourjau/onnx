@@ -1,0 +1,59 @@
+{# Copyright (c) ONNX Project Contributors #}
+{# SPDX-License-Identifier: Apache-2.0 #}
+(l-onnx-op{{ spec.domain | replace(".", "-") }}-{{ spec.op | lower }}-{{ spec.since_version }})=
+
+# {{ spec.op }} (v{{ spec.since_version }})
+
+**Domain:** `{{ spec.domain }}` | **Since version:** {{ spec.since_version }}
+
+{{ spec.doc }}
+{% if changelog %}
+
+```{admonition} Changes since previous version
+:class: note, dropdown
+
+{% for line in changelog %}
+- {{ line }}
+{% endfor %}
+```
+{% endif %}
+{% if spec.attributes %}
+
+## Attributes
+{% for attr in spec.attributes %}
+
+* **{{ attr.name }} - {{ attr.type | upper }}**{{ " (required)" if attr.required else " (default is `%s`)" % attr.default if attr.default is not none else "" }}:
+
+  {{ attr.doc }}
+{% endfor %}
+{% endif %}
+{% if spec.inputs %}
+
+## Inputs
+{% for inp in spec.inputs %}
+
+- **{{ inp.name }}**{{ inp | param_annotation }} - **{{ inp.type }}**:
+
+  {{ inp.doc }}
+{% endfor %}
+{% endif %}
+{% if spec.outputs %}
+
+## Outputs
+{% for out in spec.outputs %}
+
+- **{{ out.name }}**{{ out | param_annotation }} - **{{ out.type }}**:
+
+  {{ out.doc }}
+{% endfor %}
+{% endif %}
+{% if spec.type_constraints %}
+
+## Type Constraints
+{% for tc in spec.type_constraints %}
+
+* **{{ tc.name }}** in ( {{ tc.allowed | map("backtick") | join(", ") }} ):
+
+  {{ tc.doc }}
+{% endfor %}
+{% endif %}

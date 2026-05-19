@@ -38,7 +38,6 @@ max_opsets = {
 
 extensions = [
     "myst_parser",
-    "onnx_sphinx",
     "sphinx_copybutton",
     "sphinx_exec_code",
     "sphinx_tabs.tabs",

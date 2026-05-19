@@ -12,6 +12,7 @@
 #include "onnx/common/assertions.h"
 #include "onnx/defs/doc_strings.h"
 #include "onnx/defs/function.h"
+#include "onnx/defs/generated/op_specs_generated.h"
 #include "onnx/defs/math/utils.h"
 #include "onnx/defs/schema.h"
 #include "onnx/defs/type_builders.h"
@@ -1274,7 +1275,7 @@ ONNX_OPERATOR_SET_SCHEMA(
 ONNX_OPERATOR_SET_SCHEMA(
     TopK,
     24,
-    OpSchema().FillUsing(defs::math::utils::TopKOpGenerator(OpSchema::all_numeric_types_ir4())));
+    OpSchema().FillUsing(TopK_v24_FillSpec).TypeAndShapeInferenceFunction(defs::math::utils::TopKShapeInference));
 
 ONNX_OPERATOR_SET_SCHEMA(
     Sin,

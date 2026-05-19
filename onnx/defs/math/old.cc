@@ -9,6 +9,7 @@
 
 #include "onnx/defs/doc_strings.h"
 #include "onnx/defs/function.h"
+#include "onnx/defs/generated/op_specs_generated.h"
 #include "onnx/defs/math/utils.h"
 #include "onnx/defs/schema.h"
 #include "onnx/defs/tensor_proto_util.h"
@@ -3029,179 +3030,94 @@ ONNX_OPERATOR_SET_SCHEMA(
           *ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape() = resultShape;
         }));
 
-static constexpr const char* TopK_ver1_doc = R"DOC(
-Retrieve the top-K elements along a specified axis. Given an input tensor of
-shape [a_0, a_1, ..., a_{n-1}] and integer argument k, return two outputs:
-  -Value tensor of shape [a_0, a_1, ..., a_{axis-1}, k, a_{axis+1}, ... a_{n-1}]
-    which contains the values of the top k elements along the specified axis
-  -Index tensor of shape [a_0, a_1, ..., a_{axis-1}, k, a_{axis+1}, ... a_{n-1}] which
-   contains the indices of the top k elements (original indices from the input
-   tensor).
-Given two equivalent values, this operator uses the indices along the axis  as
- a tiebreaker. That is, the element with the lower index will appear first.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     TopK,
     1,
-    OpSchema()
-        .SetDoc(TopK_ver1_doc)
-        .Input(0, "X", "Tensor of shape [a_0, a_1, ..., a_{n-1}]", "T")
-        .Output(
-            0,
-            "Values",
-            "Tensor of shape [a_0, a_1, ..., a_{axis-1}, k, a_{axis+1}, ... a_{n-1}] "
-            "containing top K values from the input tensor",
-            "T")
-        .Output(
-            1,
-            "Indices",
-            "Tensor of shape [a_0, a_1, ..., a_{axis-1}, k, a_{axis+1}, ... a_{n-1}] "
-            "containing the corresponding input tensor indices for the top K "
-            "values.",
-            "I")
-        .TypeConstraint(
-            "T",
-            {types::Float16, types::Float, types::Double},
-            "Constrain input and output types to float tensors.")
-        .TypeConstraint("I", {types::Int64}, "Constrain index tensor to int64")
-        .Attr("k", "Number of top elements to retrieve", AttributeProto::INT, true)
-        .Attr("axis", "Dimension on which to do the sort.", AttributeProto::INT, static_cast<int64_t>(-1))
-        .TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-          // Type inference:
-          propagateElemTypeFromInputToOutput(ctx, 0, 0);
-          updateOutputElemType(ctx, 1, TensorProto::INT64);
+    OpSchema().FillUsing(TopK_v1_FillSpec).TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
+      propagateElemTypeFromInputToOutput(ctx, 0, 0);
+      updateOutputElemType(ctx, 1, TensorProto::INT64);
 
-          // Shape inference:
-          if (!hasInputShape(ctx, 0))
-            return;
-          auto& input_shape = getInputShape(ctx, 0);
-          int64_t rank = input_shape.dim_size();
-          int64_t axis = getAttribute(ctx, "axis", -1);
-          if (axis < 0)
-            axis += rank;
-          if (axis < 0 || axis >= rank) {
-            fail_shape_inference("Invalid value for attribute axis");
-          }
-          int64_t k = getAttribute(ctx, "k", -1);
-          if (k <= 0) {
-            fail_shape_inference("Invalid value for attribute k");
-          }
-          TensorShapeProto result_shape = input_shape;
-          result_shape.mutable_dim(static_cast<int>(axis))->set_dim_value(k);
-          updateOutputShape(ctx, 0, result_shape);
-          updateOutputShape(ctx, 1, result_shape);
-        }));
-
-static constexpr const char* TopK_ver10_doc = R"DOC(
-Retrieve the top-K elements along a specified axis. Given an input tensor of
-shape [a_0, a_1, ..., a_{n-1}] and integer argument k, return two outputs:
-  -Value tensor of shape [a_0, a_1, ..., a_{axis-1}, k, a_{axis+1}, ... a_{n-1}]
-    which contains the values of the top k elements along the specified axis
-  -Index tensor of shape [a_0, a_1, ..., a_{axis-1}, k, a_{axis+1}, ... a_{n-1}] which
-   contains the indices of the top k elements (original indices from the input
-   tensor).
-
-Given two equivalent values, this operator uses the indices along the axis  as
- a tiebreaker. That is, the element with the lower index will appear first.
-)DOC";
+      if (!hasInputShape(ctx, 0))
+        return;
+      auto& input_shape = getInputShape(ctx, 0);
+      int64_t rank = input_shape.dim_size();
+      int64_t axis = getAttribute(ctx, "axis", -1);
+      if (axis < 0)
+        axis += rank;
+      if (axis < 0 || axis >= rank) {
+        fail_shape_inference("Invalid value for attribute axis");
+      }
+      int64_t k = getAttribute(ctx, "k", -1);
+      if (k <= 0) {
+        fail_shape_inference("Invalid value for attribute k");
+      }
+      TensorShapeProto result_shape = input_shape;
+      result_shape.mutable_dim(static_cast<int>(axis))->set_dim_value(k);
+      updateOutputShape(ctx, 0, result_shape);
+      updateOutputShape(ctx, 1, result_shape);
+    }));
 
 ONNX_OPERATOR_SET_SCHEMA(
     TopK,
     10,
-    OpSchema()
-        .SetDoc(TopK_ver10_doc)
-        .Input(0, "X", "Tensor of shape [a_0, a_1, ..., a_{n-1}]", "T")
-        .Input(
-            1,
-            "K",
-            "A 1-D tensor containing a single positive value corresponding to the number of top elements to retrieve",
-            "tensor(int64)")
-        .Output(
-            0,
-            "Values",
-            "Tensor of shape [a_0, a_1, ..., a_{axis-1}, k, a_{axis+1}, ... a_{n-1}] "
-            "containing top K values from the input tensor",
-            "T")
-        .Output(
-            1,
-            "Indices",
-            "Tensor of shape [a_0, a_1, ..., a_{axis-1}, k, a_{axis+1}, ... a_{n-1}] "
-            "containing the corresponding input tensor indices for the top K "
-            "values.",
-            "I")
-        .TypeConstraint(
-            "T",
-            {types::Float16, types::Float, types::Double},
-            "Constrain input and output types to float tensors.")
-        .TypeConstraint("I", {types::Int64}, "Constrain index tensor to int64")
-        .Attr("axis", "Dimension on which to do the sort.", AttributeProto::INT, static_cast<int64_t>(-1))
-        .TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-          // Type inference:
-          propagateElemTypeFromInputToOutput(ctx, 0, 0);
-          updateOutputElemType(ctx, 1, TensorProto::INT64);
-          // Shape inference:
-          if (!hasInputShape(ctx, 0))
-            return;
-          auto& input_shape = getInputShape(ctx, 0);
-          int64_t rank = input_shape.dim_size();
-          int64_t axis = getAttribute(ctx, "axis", -1);
-          if (axis < 0)
-            axis += rank;
-          if (axis < 0 || axis >= rank) {
-            fail_shape_inference("Invalid value for attribute axis");
-          }
+    OpSchema().FillUsing(TopK_v10_FillSpec).TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
+      propagateElemTypeFromInputToOutput(ctx, 0, 0);
+      updateOutputElemType(ctx, 1, TensorProto::INT64);
 
-          const auto& axis_dim = input_shape.dim(static_cast<int>(axis));
-          const auto k = ctx.getInputData(1);
+      if (!hasInputShape(ctx, 0))
+        return;
+      auto& input_shape = getInputShape(ctx, 0);
+      int64_t rank = input_shape.dim_size();
+      int64_t axis = getAttribute(ctx, "axis", -1);
+      if (axis < 0)
+        axis += rank;
+      if (axis < 0 || axis >= rank) {
+        fail_shape_inference("Invalid value for attribute axis");
+      }
 
-          // Infer output shape if:
-          // (1) 'K' is available
-          // (2) axis_dim has dim value
-          // Otherwise cannot reliably compute output shape as axis dim value is
-          // unknown and hence cannot determine if axis dim value >= k (which
-          // should be enforced)
-          if (nullptr != k && axis_dim.has_dim_value()) {
-            int64_t k_value = 0;
-            if (k->dims_size() != 1 || k->dims(0) != 1) {
-              fail_shape_inference("K input must be a one-dimensional tensor of size 1.");
-            }
+      const auto& axis_dim = input_shape.dim(static_cast<int>(axis));
+      const auto k = ctx.getInputData(1);
 
-            if (k->data_type() == TensorProto::INT64) {
-              const auto data = ParseData<int64_t>(k);
-              k_value = data[0];
-            } else {
-              fail_shape_inference("K input must be of type int64.");
-            }
+      if (nullptr != k && axis_dim.has_dim_value()) {
+        int64_t k_value = 0;
+        if (k->dims_size() != 1 || k->dims(0) != 1) {
+          fail_shape_inference("K input must be a one-dimensional tensor of size 1.");
+        }
 
-            if (axis_dim.dim_value() < k_value) {
-              fail_shape_inference("Axis has less than the requested k elements.");
-            }
+        if (k->data_type() == TensorProto::INT64) {
+          const auto data = ParseData<int64_t>(k);
+          k_value = data[0];
+        } else {
+          fail_shape_inference("K input must be of type int64.");
+        }
 
-            TensorShapeProto result_shape = input_shape;
-            result_shape.mutable_dim(static_cast<int>(axis))->set_dim_value(k_value);
+        if (axis_dim.dim_value() < k_value) {
+          fail_shape_inference("Axis has less than the requested k elements.");
+        }
 
-            updateOutputShape(ctx, 0, result_shape);
-            updateOutputShape(ctx, 1, result_shape);
+        TensorShapeProto result_shape = input_shape;
+        result_shape.mutable_dim(static_cast<int>(axis))->set_dim_value(k_value);
 
-            return;
-          }
+        updateOutputShape(ctx, 0, result_shape);
+        updateOutputShape(ctx, 1, result_shape);
 
-          // Infer output shapes' rank in any case
-          auto output_shape_0 = getOutputShape(ctx, 0);
-          auto output_shape_1 = getOutputShape(ctx, 1);
-          for (int i = 0; i < input_shape.dim_size(); ++i) {
-            output_shape_0->add_dim();
-            output_shape_1->add_dim();
-          }
+        return;
+      }
 
-          return;
-        }));
+      auto output_shape_0 = getOutputShape(ctx, 0);
+      auto output_shape_1 = getOutputShape(ctx, 1);
+      for (int i = 0; i < input_shape.dim_size(); ++i) {
+        output_shape_0->add_dim();
+        output_shape_1->add_dim();
+      }
+
+      return;
+    }));
 
 ONNX_OPERATOR_SET_SCHEMA(
     TopK,
     11,
-    OpSchema().FillUsing(defs::math::utils::TopKOpGenerator(OpSchema::all_numeric_types())));
+    OpSchema().FillUsing(TopK_v11_FillSpec).TypeAndShapeInferenceFunction(defs::math::utils::TopKShapeInference));
 
 static const char* const Clip_ver6_doc = Clip_ver1_doc;
 
