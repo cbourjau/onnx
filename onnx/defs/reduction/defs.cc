@@ -5,6 +5,7 @@
 #include <functional>
 #include <string>
 
+#include "onnx/defs/generated/op_specs_generated.h"
 #include "onnx/defs/reduction/utils.h"
 #include "onnx/defs/schema.h"
 
@@ -13,14 +14,17 @@ namespace ONNX_NAMESPACE {
 ONNX_OPERATOR_SET_SCHEMA(
     ReduceMax,
     20,
-    OpSchema().FillUsing(ReduceOpGenerator("max", EMPTY_MIN, true, true, nullptr, nullptr, true)));
+    OpSchema().FillUsing(ReduceMax_v20_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 
 ONNX_OPERATOR_SET_SCHEMA(
     ReduceMin,
     20,
-    OpSchema().FillUsing(ReduceOpGenerator("min", EMPTY_MAX, true, true, nullptr, nullptr, true)));
+    OpSchema().FillUsing(ReduceMin_v20_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceSum, 13, OpSchema().FillUsing(ReduceOpDynamicAxes("sum", EMPTY_ZERO)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceSum,
+    13,
+    OpSchema().FillUsing(ReduceSum_v13_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 
 static constexpr const char* reduce_sum_square_func_body = R"ONNX(
   {
@@ -32,11 +36,17 @@ static constexpr const char* reduce_sum_square_func_body = R"ONNX(
 ONNX_OPERATOR_SET_SCHEMA(
     ReduceSumSquare,
     18,
-    OpSchema().FillUsing(ReduceFunctionOp("sum square", EMPTY_ZERO, reduce_sum_square_func_body)));
+    OpSchema().FillUsing(ReduceSumSquare_v18_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceMean, 18, OpSchema().FillUsing(ReduceOpDynamicAxes("mean", EMPTY_UNDEFINED)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMean,
+    18,
+    OpSchema().FillUsing(ReduceMean_v18_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceProd, 18, OpSchema().FillUsing(ReduceOpDynamicAxes("product", EMPTY_ONE)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceProd,
+    18,
+    OpSchema().FillUsing(ReduceProd_v18_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 
 static constexpr const char* reduce_log_sum_func_body = R"ONNX(
   {
@@ -48,7 +58,7 @@ static constexpr const char* reduce_log_sum_func_body = R"ONNX(
 ONNX_OPERATOR_SET_SCHEMA(
     ReduceLogSum,
     18,
-    OpSchema().FillUsing(ReduceFunctionOp("log sum", EMPTY_MINUS_INF, reduce_log_sum_func_body)));
+    OpSchema().FillUsing(ReduceLogSum_v18_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 
 static constexpr const char* reduce_log_sum_exp_func_body = R"ONNX(
   {
@@ -63,7 +73,7 @@ static constexpr const char* reduce_log_sum_exp_func_body = R"ONNX(
 ONNX_OPERATOR_SET_SCHEMA(
     ReduceLogSumExp,
     18,
-    OpSchema().FillUsing(ReduceFunctionOp("log sum exponent", EMPTY_MINUS_INF, reduce_log_sum_exp_func_body)));
+    OpSchema().FillUsing(ReduceLogSumExp_v18_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 
 static constexpr const char* reduce_l1_func_body = R"ONNX(
   {
@@ -75,7 +85,7 @@ static constexpr const char* reduce_l1_func_body = R"ONNX(
 ONNX_OPERATOR_SET_SCHEMA(
     ReduceL1,
     18,
-    OpSchema().FillUsing(ReduceFunctionOp("L1 norm", EMPTY_ZERO, reduce_l1_func_body)));
+    OpSchema().FillUsing(ReduceL1_v18_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 
 static constexpr const char* reduce_l2_func_body = R"ONNX(
   {
@@ -90,7 +100,7 @@ static constexpr const char* reduce_l2_func_body = R"ONNX(
 ONNX_OPERATOR_SET_SCHEMA(
     ReduceL2,
     18,
-    OpSchema().FillUsing(ReduceFunctionOp("L2 norm", EMPTY_ZERO, reduce_l2_func_body)));
+    OpSchema().FillUsing(ReduceL2_v18_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 
 static void argReduceShapeInference(InferenceContext& ctx) {
   // set output element type to int64
@@ -178,8 +188,14 @@ The type of the output tensor is integer.)DOC";
   };
 }
 
-ONNX_OPERATOR_SET_SCHEMA(ArgMax, 13, OpSchema().FillUsing(ArgReduceDocGenerator("max")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ArgMax,
+    13,
+    OpSchema().FillUsing(ArgMax_v13_FillSpec).TypeAndShapeInferenceFunction(argReduceShapeInference));
 
-ONNX_OPERATOR_SET_SCHEMA(ArgMin, 13, OpSchema().FillUsing(ArgReduceDocGenerator("min")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ArgMin,
+    13,
+    OpSchema().FillUsing(ArgMin_v13_FillSpec).TypeAndShapeInferenceFunction(argReduceShapeInference));
 
 } // namespace ONNX_NAMESPACE

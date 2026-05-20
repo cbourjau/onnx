@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "onnx/defs/generated/op_specs_generated.h"
 #include "onnx/defs/reduction/utils.h"
 #include "onnx/defs/schema.h"
 
@@ -101,25 +102,55 @@ False instead of True.)DOC";
   };
 }
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceMax, 12, OpSchema().FillUsing(ReduceDocGenerator_opset12("max", true)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMax,
+    12,
+    OpSchema().FillUsing(ReduceMax_v12_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset12));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceMin, 12, OpSchema().FillUsing(ReduceDocGenerator_opset12("min", true)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMin,
+    12,
+    OpSchema().FillUsing(ReduceMin_v12_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset12));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceSum, 11, OpSchema().FillUsing(ReduceDocGenerator_opset12("sum")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceSum,
+    11,
+    OpSchema().FillUsing(ReduceSum_v11_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset12));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceSumSquare, 11, OpSchema().FillUsing(ReduceDocGenerator_opset12("sum square")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceSumSquare,
+    11,
+    OpSchema().FillUsing(ReduceSumSquare_v11_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset12));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceMean, 11, OpSchema().FillUsing(ReduceDocGenerator_opset12("mean")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMean,
+    11,
+    OpSchema().FillUsing(ReduceMean_v11_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset12));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceProd, 11, OpSchema().FillUsing(ReduceDocGenerator_opset12("product")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceProd,
+    11,
+    OpSchema().FillUsing(ReduceProd_v11_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset12));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceLogSum, 11, OpSchema().FillUsing(ReduceDocGenerator_opset12("log sum")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceLogSum,
+    11,
+    OpSchema().FillUsing(ReduceLogSum_v11_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset12));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceLogSumExp, 11, OpSchema().FillUsing(ReduceDocGenerator_opset12("log sum exponent")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceLogSumExp,
+    11,
+    OpSchema().FillUsing(ReduceLogSumExp_v11_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset12));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceL1, 11, OpSchema().FillUsing(ReduceDocGenerator_opset12("L1 norm")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceL1,
+    11,
+    OpSchema().FillUsing(ReduceL1_v11_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset12));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceL2, 11, OpSchema().FillUsing(ReduceDocGenerator_opset12("L2 norm")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceL2,
+    11,
+    OpSchema().FillUsing(ReduceL2_v11_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset12));
 
 static void argReduceShapeInference_opset12(InferenceContext& ctx) {
   // set output element type to int64
@@ -199,9 +230,15 @@ The type of the output tensor is integer.)DOC";
   };
 } // namespace ONNX_NAMESPACE
 
-ONNX_OPERATOR_SET_SCHEMA(ArgMax, 12, OpSchema().FillUsing(ArgReduceDocGenerator_opset12("max")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ArgMax,
+    12,
+    OpSchema().FillUsing(ArgMax_v12_FillSpec).TypeAndShapeInferenceFunction(argReduceShapeInference_opset12));
 
-ONNX_OPERATOR_SET_SCHEMA(ArgMin, 12, OpSchema().FillUsing(ArgReduceDocGenerator_opset12("min")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ArgMin,
+    12,
+    OpSchema().FillUsing(ArgMin_v12_FillSpec).TypeAndShapeInferenceFunction(argReduceShapeInference_opset12));
 
 static void reduceShapeInference_opset1(InferenceContext& ctx) {
   propagateElemTypeFromInputToOutput(ctx, 0, 0);
@@ -279,32 +316,65 @@ False instead of True.)DOC";
   };
 }
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceMax, 1, OpSchema().FillUsing(ReduceDocGenerator_opset1("max", EMPTY_MIN)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMax,
+    1,
+    OpSchema().FillUsing(ReduceMax_v1_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset1));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceMin, 1, OpSchema().FillUsing(ReduceDocGenerator_opset1("min", EMPTY_MAX)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMin,
+    1,
+    OpSchema().FillUsing(ReduceMin_v1_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset1));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceSum, 1, OpSchema().FillUsing(ReduceDocGenerator_opset1("sum", EMPTY_ZERO)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceSum,
+    1,
+    OpSchema().FillUsing(ReduceSum_v1_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset1));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceSumSquare, 1, OpSchema().FillUsing(ReduceDocGenerator_opset1("sum square", EMPTY_ZERO)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceSumSquare,
+    1,
+    OpSchema().FillUsing(ReduceSumSquare_v1_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset1));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceMean, 1, OpSchema().FillUsing(ReduceDocGenerator_opset1("mean", EMPTY_UNDEFINED)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMean,
+    1,
+    OpSchema().FillUsing(ReduceMean_v1_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset1));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceProd, 1, OpSchema().FillUsing(ReduceDocGenerator_opset1("product", EMPTY_ONE)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceProd,
+    1,
+    OpSchema().FillUsing(ReduceProd_v1_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset1));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceLogSum, 1, OpSchema().FillUsing(ReduceDocGenerator_opset1("log sum", EMPTY_MINUS_INF)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceLogSum,
+    1,
+    OpSchema().FillUsing(ReduceLogSum_v1_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset1));
 
 ONNX_OPERATOR_SET_SCHEMA(
     ReduceLogSumExp,
     1,
-    OpSchema().FillUsing(ReduceDocGenerator_opset1("log sum exponent", EMPTY_MINUS_INF)));
+    OpSchema().FillUsing(ReduceLogSumExp_v1_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset1));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceL1, 1, OpSchema().FillUsing(ReduceDocGenerator_opset1("L1 norm", EMPTY_ZERO)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceL1,
+    1,
+    OpSchema().FillUsing(ReduceL1_v1_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset1));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceL2, 1, OpSchema().FillUsing(ReduceDocGenerator_opset1("L2 norm", EMPTY_ZERO)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceL2,
+    1,
+    OpSchema().FillUsing(ReduceL2_v1_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset1));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceMax, 11, OpSchema().FillUsing(ReduceDocGenerator_opset1("max", EMPTY_MIN, 11)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMax,
+    11,
+    OpSchema().FillUsing(ReduceMax_v11_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset1));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceMin, 11, OpSchema().FillUsing(ReduceDocGenerator_opset1("min", EMPTY_MAX, 11)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMin,
+    11,
+    OpSchema().FillUsing(ReduceMin_v11_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference_opset1));
 
 static void argReduceShapeInference_opset1(InferenceContext& ctx) {
   // set output element type to int64
@@ -369,9 +439,15 @@ The type of the output tensor is integer.)DOC";
   };
 } // namespace ONNX_NAMESPACE
 
-ONNX_OPERATOR_SET_SCHEMA(ArgMax, 1, OpSchema().FillUsing(ArgReduceDocGenerator_opset1("max")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ArgMax,
+    1,
+    OpSchema().FillUsing(ArgMax_v1_FillSpec).TypeAndShapeInferenceFunction(argReduceShapeInference_opset1));
 
-ONNX_OPERATOR_SET_SCHEMA(ArgMin, 1, OpSchema().FillUsing(ArgReduceDocGenerator_opset1("min")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ArgMin,
+    1,
+    OpSchema().FillUsing(ArgMin_v1_FillSpec).TypeAndShapeInferenceFunction(argReduceShapeInference_opset1));
 
 static std::function<void(OpSchema&)> ArgReduceDocGenerator_opset11(const char* name) {
   return [=](OpSchema& schema) {
@@ -401,22 +477,58 @@ The type of the output tensor is integer.)DOC";
   };
 } // namespace ONNX_NAMESPACE
 
-ONNX_OPERATOR_SET_SCHEMA(ArgMax, 11, OpSchema().FillUsing(ArgReduceDocGenerator_opset11("max")));
-ONNX_OPERATOR_SET_SCHEMA(ArgMin, 11, OpSchema().FillUsing(ArgReduceDocGenerator_opset11("min")));
+ONNX_OPERATOR_SET_SCHEMA(
+    ArgMax,
+    11,
+    OpSchema().FillUsing(ArgMax_v11_FillSpec).TypeAndShapeInferenceFunction(argReduceShapeInference_opset12));
+ONNX_OPERATOR_SET_SCHEMA(
+    ArgMin,
+    11,
+    OpSchema().FillUsing(ArgMin_v11_FillSpec).TypeAndShapeInferenceFunction(argReduceShapeInference_opset12));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceMax, 13, OpSchema().FillUsing(ReduceOpGenerator("max", EMPTY_MIN, true)));
-ONNX_OPERATOR_SET_SCHEMA(ReduceMin, 13, OpSchema().FillUsing(ReduceOpGenerator("min", EMPTY_MAX, true)));
-ONNX_OPERATOR_SET_SCHEMA(ReduceSumSquare, 13, OpSchema().FillUsing(ReduceOpGenerator("sum square", EMPTY_ZERO)));
-ONNX_OPERATOR_SET_SCHEMA(ReduceMean, 13, OpSchema().FillUsing(ReduceOpGenerator("mean", EMPTY_UNDEFINED)));
-ONNX_OPERATOR_SET_SCHEMA(ReduceProd, 13, OpSchema().FillUsing(ReduceOpGenerator("product", EMPTY_ONE)));
-ONNX_OPERATOR_SET_SCHEMA(ReduceLogSum, 13, OpSchema().FillUsing(ReduceOpGenerator("log sum", EMPTY_MINUS_INF)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMax,
+    13,
+    OpSchema().FillUsing(ReduceMax_v13_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMin,
+    13,
+    OpSchema().FillUsing(ReduceMin_v13_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceSumSquare,
+    13,
+    OpSchema().FillUsing(ReduceSumSquare_v13_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMean,
+    13,
+    OpSchema().FillUsing(ReduceMean_v13_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceProd,
+    13,
+    OpSchema().FillUsing(ReduceProd_v13_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceLogSum,
+    13,
+    OpSchema().FillUsing(ReduceLogSum_v13_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 ONNX_OPERATOR_SET_SCHEMA(
     ReduceLogSumExp,
     13,
-    OpSchema().FillUsing(ReduceOpGenerator("log sum exponent", EMPTY_MINUS_INF)));
-ONNX_OPERATOR_SET_SCHEMA(ReduceL1, 13, OpSchema().FillUsing(ReduceOpGenerator("L1 norm", EMPTY_ZERO)));
-ONNX_OPERATOR_SET_SCHEMA(ReduceL2, 13, OpSchema().FillUsing(ReduceOpGenerator("L2 norm", EMPTY_ZERO)));
+    OpSchema().FillUsing(ReduceLogSumExp_v13_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceL1,
+    13,
+    OpSchema().FillUsing(ReduceL1_v13_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceL2,
+    13,
+    OpSchema().FillUsing(ReduceL2_v13_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 
-ONNX_OPERATOR_SET_SCHEMA(ReduceMax, 18, OpSchema().FillUsing(ReduceOpGenerator("max", EMPTY_MIN, true, true)));
-ONNX_OPERATOR_SET_SCHEMA(ReduceMin, 18, OpSchema().FillUsing(ReduceOpGenerator("min", EMPTY_MAX, true, true)));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMax,
+    18,
+    OpSchema().FillUsing(ReduceMax_v18_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
+ONNX_OPERATOR_SET_SCHEMA(
+    ReduceMin,
+    18,
+    OpSchema().FillUsing(ReduceMin_v18_FillSpec).TypeAndShapeInferenceFunction(reduceShapeInference));
 } // namespace ONNX_NAMESPACE
