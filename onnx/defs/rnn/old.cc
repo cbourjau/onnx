@@ -346,6 +346,8 @@ Equations (Default: f=Sigmoid, g=Tanh):
   - Ht = (1 - zt) (.) ht + zt (.) Ht-1
 )DOC";
 
+static void RNNShapeInference_opset1_to_6(InferenceContext& ctx);
+
 ONNX_OPERATOR_SET_SCHEMA(
     GRU,
     1,

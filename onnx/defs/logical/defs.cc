@@ -19,7 +19,8 @@ inline static void unaryLogicalOpInference(InferenceContext& ctx) {
   }
 }
 
-static void binaryLogicalOpInference(InferenceContext& ctx) {
+// NOLINTNEXTLINE(misc-use-internal-linkage)
+void binaryLogicalOpInference(InferenceContext& ctx) {
   // Type inference
   updateOutputElemType(ctx, 0, TensorProto::BOOL);
   // Shape inference

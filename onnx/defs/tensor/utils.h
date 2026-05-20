@@ -52,6 +52,8 @@ void KeepAspectRatioHelper(
 extern const char* NonZero_ver9_doc;
 extern const char* Transpose_doc;
 
+void padShapeInference(InferenceContext& ctx);
+
 std::function<void(OpSchema&)> PadDocGenerator(
     const char* description,
     const char* mode_description,

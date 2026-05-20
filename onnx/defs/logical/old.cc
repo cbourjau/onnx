@@ -9,6 +9,8 @@
 
 namespace ONNX_NAMESPACE {
 
+void binaryLogicalOpInference(InferenceContext& ctx);
+
 static void binaryLogicalOpInference_opset7(InferenceContext& ctx) {
   // Type inference
   updateOutputElemType(ctx, 0, TensorProto::BOOL);
