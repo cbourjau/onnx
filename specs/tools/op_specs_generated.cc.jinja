@@ -1,0 +1,57 @@
+{# Copyright (c) ONNX Project Contributors #}
+{# SPDX-License-Identifier: Apache-2.0 #}
+#include "onnx/defs/generated/op_specs_generated.h"
+
+using namespace ONNX_NAMESPACE;
+{% for spec in specs %}
+
+void {{ spec.func_name }}(OpSchema& schema) {
+  schema
+{% if spec.support_level_enum %}
+      .SetSupportLevel({{ spec.support_level_enum }})
+{% endif %}
+{% if spec.deprecated %}
+      .Deprecate()
+{% endif %}
+{% if spec.non_deterministic %}
+      .SetNodeDeterminism(OpSchema::NodeDeterminism::NonDeterministic)
+{% endif %}
+      .SetDoc(R"DOC({{ spec.doc }})DOC")
+{% for inp in spec.inputs %}
+      .Input(
+          {{ loop.index0 }},
+          "{{ inp.name }}",
+          "{{ inp.doc }}",
+          "{{ inp.type }}",
+          {{ inp.kind_enum }},
+          {{ inp.homogeneous }},
+          {{ inp.min_arity }},
+          {{ inp.diff_enum }})
+{% endfor %}
+{% for out in spec.outputs %}
+      .Output(
+          {{ loop.index0 }},
+          "{{ out.name }}",
+          "{{ out.doc }}",
+          "{{ out.type }}",
+          {{ out.kind_enum }},
+          {{ out.homogeneous }},
+          {{ out.min_arity }},
+          {{ out.diff_enum }})
+{% endfor %}
+{% for attr in spec.attributes %}
+      .Attr(
+          "{{ attr.name }}",
+          "{{ attr.doc }}",
+          {{ attr.type_enum }},
+          {{ attr.default }})
+{% endfor %}
+{% for tc in spec.type_constraints %}
+      .TypeConstraint(
+          "{{ tc.name }}",
+          {{ tc.allowed }},
+          "{{ tc.doc }}")
+{% endfor %}
+      ;
+}
+{% endfor %}

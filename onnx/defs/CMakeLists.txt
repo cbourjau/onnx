@@ -29,6 +29,25 @@ target_sources(onnx_core PRIVATE
     tensor_util.h
 )
 
+set(OP_SPECS_GENERATED_DIR "${CMAKE_BINARY_DIR}/onnx/defs/generated")
+set(OP_SPECS_GENERATED_H "${OP_SPECS_GENERATED_DIR}/op_specs_generated.h")
+set(OP_SPECS_GENERATED_CC "${OP_SPECS_GENERATED_DIR}/op_specs_generated.cc")
+add_custom_command(
+    OUTPUT ${OP_SPECS_GENERATED_H} ${OP_SPECS_GENERATED_CC}
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/specs/tools/gen_cpp.py"
+            --output-dir "${OP_SPECS_GENERATED_DIR}"
+    DEPENDS "${CMAKE_SOURCE_DIR}/specs/tools/gen_cpp.py"
+            "${CMAKE_SOURCE_DIR}/specs/tools/models.py"
+            # "${CMAKE_SOURCE_DIR}/specs/tools/build_docs.py"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/specs/tools"
+    COMMENT "Generating operator schema C++ from YAML specs"
+    VERBATIM
+)
+add_custom_target(gen_op_specs DEPENDS ${OP_SPECS_GENERATED_H} ${OP_SPECS_GENERATED_CC})
+add_dependencies(onnx_core gen_op_specs)
+target_sources(onnx_core PRIVATE ${OP_SPECS_GENERATED_CC})
+target_include_directories(onnx_core PRIVATE "${CMAKE_BINARY_DIR}")
+
 add_subdirectory(controlflow)
 add_subdirectory(generator)
 add_subdirectory(image)

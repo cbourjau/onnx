@@ -63,8 +63,6 @@ onnx/*_pb.pyi
 ## ONNX
 
 # build, distribute, and bins (+ python proto bindings)
-build
-build_*
 .build_debug/*
 .build_release/*
 .setuptools-cmake-build/*
@@ -104,10 +102,12 @@ venv
 .psenvrc
 
 # documentation
-docs/docsgen/source/onnx-api/modules/
-docs/docsgen/source/operators/
+/docs/docsgen/source/_generated/
 docs/docsgen/**/*.onnx
 docs/docsgen/**/*.pb
+docs/docsgen/build/*
+docs/docsgen/source/onnx-api/modules/
+docs/docsgen/source/operators/
 
 # PyEnv files
 .python-version
