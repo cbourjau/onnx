@@ -8,6 +8,8 @@ ONNX = "ONNX"
 "np.arange" = "np.arange"
 CNA = "CNA"  # Cloud Native Association
 writeable = "writeable"
+ot = "ot"  # LSTM output gate variable name
+foward = "foward"  # typo in published spec, cannot fix
 
 [default]
 extend-ignore-re = [
@@ -30,27 +32,9 @@ extend-words = { iy = "iy" }
 extend-glob = ["group_normalization_20_21.h"]
 extend-words = { kend = "kend" }
 
-[type.doc_strings_cc]
-extend-glob = ["doc_strings.cc"]
-extend-words = { ot = "ot" }
-
-[type.old_cc]
-extend-glob = ["old.cc"]
-extend-words = { ot = "ot" }
-
-[type.operators_md]
-extend-glob = ["Operators.md"]
-extend-words = { ot = "ot" }
 
 [type.op_conv_py]
 extend-glob = ["op_conv.py"]
 extend-words = { iz = "iz" }
 
-[type.changelog_md]
-extend-glob = ["Changelog.md"]
-extend-words = { ot = "ot" }
-extend-ignore-re = ["foward\\)"]  # typo in published spec
 
-[type.lint_yml]
-extend-glob = ["lint.yml"]
-extend-ignore-re = ["foward,"]  # typo in published spec
