@@ -84,7 +84,7 @@ static std::function<void(OpSchema&)> GlobalLpPoolingOpSchemaGenerator_opset2(co
         OpSchema::Differentiable);
     schema.TypeConstraint(
         "T", {types::Float16, types::Float, types::Double}, "Constrain input and output types to float tensors.");
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) { globalPoolTypeShapeInference_opset2(ctx); });
+    schema.TypeAndShapeInferenceFunction(globalPoolTypeShapeInference_opset2);
   };
 }
 
@@ -573,7 +573,7 @@ static std::function<void(OpSchema&)> GlobalPoolingOpSchemaGenerator_opset1(cons
         OpSchema::Differentiable);
     schema.TypeConstraint(
         "T", {types::Float16, types::Float, types::Double}, "Constrain input and output types to float tensors.");
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) { globalPoolTypeShapeInference_opset1(ctx); });
+    schema.TypeAndShapeInferenceFunction(globalPoolTypeShapeInference_opset1);
   };
 }
 ONNX_OPERATOR_SET_SCHEMA(
@@ -940,11 +940,16 @@ output_shape can also be explicitly specified in which case pads values are auto
         "number of groups input channels and output channels are divided into.",
         AttributeProto::INT,
         static_cast<int64_t>(1));
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) { convTransposeShapeInference_opset11(ctx); });
+    schema.TypeAndShapeInferenceFunction(convTransposeShapeInference_opset11);
   };
 }
 
 ONNX_OPERATOR_SET_SCHEMA(ConvTranspose, 11, OpSchema().FillUsing(ConvTransposeOpSchemaGenerator_opset11("a filter")));
+
+static void convShapeInference_opset11(InferenceContext& ctx) {
+  propagateElemTypeFromInputToOutput(ctx, 0, 0);
+  convPoolShapeInference_opset19(ctx, true, false, 0, 1);
+}
 
 static std::function<void(OpSchema&)> ConvOpSchemaGenerator_opset11(const char* filter_desc) {
   return [=](OpSchema& schema) {
@@ -1042,10 +1047,7 @@ computes the output.)DOC";
         "number of groups input channels and output channels are divided into.",
         AttributeProto::INT,
         static_cast<int64_t>(1));
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-      convPoolShapeInference_opset19(ctx, true, false, 0, 1);
-    });
+    schema.TypeAndShapeInferenceFunction(convShapeInference_opset11);
   };
 }
 
@@ -1141,11 +1143,16 @@ static std::function<void(OpSchema&)> RoiPoolOpSchemaGenerator_opset1(const char
         OpSchema::Differentiable);
     schema.TypeConstraint(
         "T", {types::Float16, types::Float, types::Double}, "Constrain input and output types to float tensors.");
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) { roiPoolTypeShapeInference_opset1(ctx); });
+    schema.TypeAndShapeInferenceFunction(roiPoolTypeShapeInference_opset1);
   };
 }
 
 ONNX_OPERATOR_SET_SCHEMA(MaxRoiPool, 1, OpSchema().FillUsing(RoiPoolOpSchemaGenerator_opset1("max")));
+
+static void lpPoolShapeInference_opset18(InferenceContext& ctx) {
+  propagateElemTypeFromInputToOutput(ctx, 0, 0);
+  convPoolShapeInference_opset19(ctx, true, true, 0, 1);
+}
 
 static std::function<void(OpSchema&)> LpPoolOpSchemaGenerator_opset18(const char* name) {
   return [=](OpSchema& schema) {
@@ -1226,10 +1233,7 @@ static std::function<void(OpSchema&)> LpPoolOpSchemaGenerator_opset18(const char
         OpSchema::Differentiable);
     schema.TypeConstraint(
         "T", {types::Float16, types::Float, types::Double}, "Constrain input and output types to float tensors.");
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-      convPoolShapeInference_opset19(ctx, true, true, 0, 1);
-    });
+    schema.TypeAndShapeInferenceFunction(lpPoolShapeInference_opset18);
   };
 }
 
@@ -1313,6 +1317,25 @@ static std::vector<std::string> GetSupportedDataTypesForPoolingOps_opset19(bool 
     return {types::Float16, types::Float, types::Double, types::Int8, types::UInt8};
   }
   return {types::Float16, types::Float, types::Double};
+}
+
+static std::function<void(InferenceContext&)> poolShapeInferenceFunc_opset19(bool use_dilation) {
+  return [use_dilation](InferenceContext& ctx) {
+    propagateElemTypeFromInputToOutput(ctx, 0, 0);
+    if (ctx.getNumOutputs() > 1) {
+      // MaxPool with two outputs case.
+      auto* output_type = ctx.getOutputType(1);
+      if (output_type->value_case() == TypeProto::kTensorType ||
+          output_type->value_case() == TypeProto::VALUE_NOT_SET) {
+        output_type->mutable_tensor_type()->set_elem_type(TensorProto::INT64);
+      }
+    }
+    convPoolShapeInference_opset19(ctx, use_dilation, true, 0, 1);
+  };
+}
+
+static void poolShapeInference_opset19_with_dilation(InferenceContext& ctx) {
+  poolShapeInferenceFunc_opset19(true)(ctx);
 }
 
 static std::function<void(OpSchema&)> PoolOpSchemaGenerator_opset19(
@@ -1414,30 +1437,26 @@ static std::function<void(OpSchema&)> PoolOpSchemaGenerator_opset19(
         GetSupportedDataTypesForPoolingOps_opset19(supports8bit),
         supports8bit ? "Constrain input and output types to float and 8 bit tensors."
                      : "Constrain input and output types to float tensors.");
-    schema.TypeAndShapeInferenceFunction([use_dilation](InferenceContext& ctx) {
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-      if (ctx.getNumOutputs() > 1) {
-        // MaxPool with two outputs case.
-        auto* output_type = ctx.getOutputType(1);
-        if (output_type->value_case() == TypeProto::kTensorType ||
-            output_type->value_case() == TypeProto::VALUE_NOT_SET) {
-          output_type->mutable_tensor_type()->set_elem_type(TensorProto::INT64);
-        }
-      }
-      convPoolShapeInference_opset19(ctx, use_dilation, true, 0, 1);
-    });
+    schema.TypeAndShapeInferenceFunction(poolShapeInference_opset19_with_dilation);
   };
+}
+
+static std::function<void(OpSchema&)> PoolOpSchemaGenerator_opset19_with_dilation(
+    const char* name,
+    const char* opName,
+    const char* additionalDescription,
+    bool supports8bit = false) {
+  return PoolOpSchemaGenerator_opset19(name, opName, additionalDescription, true, supports8bit);
 }
 
 ONNX_OPERATOR_SET_SCHEMA(
     AveragePool,
     19,
     OpSchema()
-        .FillUsing(PoolOpSchemaGenerator_opset19(
+        .FillUsing(PoolOpSchemaGenerator_opset19_with_dilation(
             "AveragePool",
             "average",
             "The output of each pooling window is divided by the number of elements (exclude pad when attribute count_include_pad is zero).",
-            true, /* use_dilation: dilations attribute has been added in opset 19. */
             false /* supports8bit: does not support 8bit. */))
         .Attr(
             "dilations",
@@ -1454,11 +1473,10 @@ ONNX_OPERATOR_SET_SCHEMA(
     MaxPool,
     12,
     OpSchema()
-        .FillUsing(PoolOpSchemaGenerator_opset19(
+        .FillUsing(PoolOpSchemaGenerator_opset19_with_dilation(
             "MaxPool",
             "max",
             "The output of each pooling window is maximum number of elements exclude pad. ",
-            true,
             true))
         .Attr(
             "storage_order",
@@ -2044,6 +2062,18 @@ static void convPoolShapeInference_opset1_to_11(
   }
 }
 
+static void poolShapeInference_opset1_to_8(InferenceContext& ctx) {
+  propagateElemTypeFromInputToOutput(ctx, 0, 0);
+  if (ctx.getNumOutputs() > 1) {
+    // MaxPool with two outputs case.
+    auto* output_type = ctx.getOutputType(1);
+    if (output_type->value_case() == TypeProto::kTensorType || output_type->value_case() == TypeProto::VALUE_NOT_SET) {
+      output_type->mutable_tensor_type()->set_elem_type(TensorProto::INT64);
+    }
+  }
+  convPoolShapeInference_opset1_to_11(ctx, false, true, 0, 1);
+}
+
 static std::function<void(OpSchema&)>
 PoolOpSchemaGenerator_opset1_to_8(const char* name, const char* opName, const char* additionalDescription) {
   return [=](OpSchema& schema) {
@@ -2105,19 +2135,31 @@ PoolOpSchemaGenerator_opset1_to_8(const char* name, const char* opName, const ch
         "T");
     schema.TypeConstraint(
         "T", {types::Float16, types::Float, types::Double}, "Constrain input and output types to float tensors.");
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-      if (ctx.getNumOutputs() > 1) {
-        // MaxPool with two outputs case.
-        auto* output_type = ctx.getOutputType(1);
-        if (output_type->value_case() == TypeProto::kTensorType ||
-            output_type->value_case() == TypeProto::VALUE_NOT_SET) {
-          output_type->mutable_tensor_type()->set_elem_type(TensorProto::INT64);
-        }
-      }
-      convPoolShapeInference_opset1_to_11(ctx, false, true, 0, 1);
-    });
+    schema.TypeAndShapeInferenceFunction(poolShapeInference_opset1_to_8);
   };
+}
+
+static std::function<void(InferenceContext&)> poolShapeInferenceFunc_opset1_to_11(bool use_dilation) {
+  return [use_dilation](InferenceContext& ctx) {
+    propagateElemTypeFromInputToOutput(ctx, 0, 0);
+    if (ctx.getNumOutputs() > 1) {
+      // MaxPool with two outputs case.
+      auto* output_type = ctx.getOutputType(1);
+      if (output_type->value_case() == TypeProto::kTensorType ||
+          output_type->value_case() == TypeProto::VALUE_NOT_SET) {
+        output_type->mutable_tensor_type()->set_elem_type(TensorProto::INT64);
+      }
+    }
+    convPoolShapeInference_opset1_to_11(ctx, use_dilation, true, 0, 1);
+  };
+}
+
+static void poolShapeInference_opset1_to_11_no_dilation(InferenceContext& ctx) {
+  poolShapeInferenceFunc_opset1_to_11(false)(ctx);
+}
+
+static void poolShapeInference_opset1_to_11_with_dilation(InferenceContext& ctx) {
+  poolShapeInferenceFunc_opset1_to_11(true)(ctx);
 }
 
 static std::function<void(OpSchema&)> PoolOpSchemaGenerator_opset10_to_11(
@@ -2207,18 +2249,8 @@ static std::function<void(OpSchema&)> PoolOpSchemaGenerator_opset10_to_11(
         "T");
     schema.TypeConstraint(
         "T", {types::Float16, types::Float, types::Double}, "Constrain input and output types to float tensors.");
-    schema.TypeAndShapeInferenceFunction([use_dilation](InferenceContext& ctx) {
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-      if (ctx.getNumOutputs() > 1) {
-        // MaxPool with two outputs case.
-        auto* output_type = ctx.getOutputType(1);
-        if (output_type->value_case() == TypeProto::kTensorType ||
-            output_type->value_case() == TypeProto::VALUE_NOT_SET) {
-          output_type->mutable_tensor_type()->set_elem_type(TensorProto::INT64);
-        }
-      }
-      convPoolShapeInference_opset1_to_11(ctx, use_dilation, true, 0, 1);
-    });
+    schema.TypeAndShapeInferenceFunction(
+        use_dilation ? poolShapeInference_opset1_to_11_with_dilation : poolShapeInference_opset1_to_11_no_dilation);
   };
 }
 
@@ -2331,19 +2363,22 @@ or when ceil_mode is disabled:
         GetSupportedDataTypesForPoolingOps_opset11(supports8bit),
         supports8bit ? "Constrain input and output types to float and 8 bit tensors."
                      : "Constrain input and output types to float tensors.");
-    schema.TypeAndShapeInferenceFunction([use_dilation](InferenceContext& ctx) {
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-      if (ctx.getNumOutputs() > 1) {
-        // MaxPool with two outputs case.
-        auto* output_type = ctx.getOutputType(1);
-        if (output_type->value_case() == TypeProto::kTensorType ||
-            output_type->value_case() == TypeProto::VALUE_NOT_SET) {
-          output_type->mutable_tensor_type()->set_elem_type(TensorProto::INT64);
-        }
-      }
-      convPoolShapeInference_opset1_to_11(ctx, use_dilation, true, 0, 1);
-    });
+    schema.TypeAndShapeInferenceFunction(
+        use_dilation ? poolShapeInference_opset1_to_11_with_dilation : poolShapeInference_opset1_to_11_no_dilation);
   };
+}
+
+static std::function<void(OpSchema&)>
+PoolOpSchemaGenerator_opset10_no_dilation(const char* name, const char* opName, const char* additionalDescription) {
+  return PoolOpSchemaGenerator_opset10_to_11(name, opName, additionalDescription, false, 10);
+}
+
+static std::function<void(OpSchema&)> PoolOpSchemaGenerator_opset11_with_dilation(
+    const char* name,
+    const char* opName,
+    const char* additionalDescription,
+    bool supports8bit = false) {
+  return PoolOpSchemaGenerator_opset11(name, opName, additionalDescription, true, supports8bit);
 }
 
 ONNX_OPERATOR_SET_SCHEMA(
@@ -2372,12 +2407,10 @@ ONNX_OPERATOR_SET_SCHEMA(
     AveragePool,
     10,
     OpSchema()
-        .FillUsing(PoolOpSchemaGenerator_opset10_to_11(
+        .FillUsing(PoolOpSchemaGenerator_opset10_no_dilation(
             "AveragePool",
             "average",
-            "The output of each pooling window is divided by the number of elements (exclude pad when attribute count_include_pad is zero).",
-            false,
-            10))
+            "The output of each pooling window is divided by the number of elements (exclude pad when attribute count_include_pad is zero)."))
         .Attr(
             "count_include_pad",
             "Whether include pad pixels when calculating values for the edges. Default is 0, doesn't count include pad.",
@@ -2388,11 +2421,10 @@ ONNX_OPERATOR_SET_SCHEMA(
     AveragePool,
     11,
     OpSchema()
-        .FillUsing(PoolOpSchemaGenerator_opset11(
+        .FillUsing(PoolOpSchemaGenerator_opset11_with_dilation(
             "AveragePool",
             "average",
             "The output of each pooling window is divided by the number of elements (exclude pad when attribute count_include_pad is zero).",
-            true,
             false))
         .Attr(
             "count_include_pad",
@@ -2692,6 +2724,11 @@ ONNX_OPERATOR_SET_SCHEMA(
             {types::Float16, types::Float, types::Double},
             "Constrain input and output types to float tensors."));
 
+static void lpPoolShapeInference_opset2(InferenceContext& ctx) {
+  propagateElemTypeFromInputToOutput(ctx, 0, 0);
+  convPoolShapeInference_opset1_to_11(ctx, false, true, 0, 1);
+}
+
 static std::function<void(OpSchema&)> LpPoolOpSchemaGenerator_opset2(const char* name) {
   return [=](OpSchema& schema) {
     std::string doc;
@@ -2731,10 +2768,7 @@ static std::function<void(OpSchema&)> LpPoolOpSchemaGenerator_opset2(const char*
         "T");
     schema.TypeConstraint(
         "T", {types::Float16, types::Float, types::Double}, "Constrain input and output types to float tensors.");
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-      convPoolShapeInference_opset1_to_11(ctx, false, true, 0, 1);
-    });
+    schema.TypeAndShapeInferenceFunction(lpPoolShapeInference_opset2);
   };
 }
 
@@ -2744,6 +2778,11 @@ static constexpr const char* GlobalLpPool_ver1_doc = R"DOC(
  GlobalLpPool consumes an input tensor X and applies lp pool pooling across the
  the values in the same channel. This is equivalent to LpPool with kernel size
  equal to the spatial dimension of input tensor.)DOC";
+
+static void lpPoolShapeInference_opset11(InferenceContext& ctx) {
+  propagateElemTypeFromInputToOutput(ctx, 0, 0);
+  convPoolShapeInference_opset1_to_11(ctx, false, true, 0, 1);
+}
 
 static std::function<void(OpSchema&)> LpPoolOpSchemaGenerator_opset11(const char* name) {
   return [=](OpSchema& schema) {
@@ -2796,14 +2835,16 @@ static std::function<void(OpSchema&)> LpPoolOpSchemaGenerator_opset11(const char
         OpSchema::Differentiable);
     schema.TypeConstraint(
         "T", {types::Float16, types::Float, types::Double}, "Constrain input and output types to float tensors.");
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-      convPoolShapeInference_opset1_to_11(ctx, false, true, 0, 1);
-    });
+    schema.TypeAndShapeInferenceFunction(lpPoolShapeInference_opset11);
   };
 }
 
 ONNX_OPERATOR_SET_SCHEMA(LpPool, 11, OpSchema().FillUsing(LpPoolOpSchemaGenerator_opset11("LpPool")));
+
+static void convShapeInference_opset1(InferenceContext& ctx) {
+  propagateElemTypeFromInputToOutput(ctx, 0, 0);
+  convPoolShapeInference_opset1_to_11(ctx, true, false, 0, 1);
+}
 
 static std::function<void(OpSchema&)> ConvOpSchemaGenerator_opset1(const char* filter_desc) {
   return [=](OpSchema& schema) {
@@ -2870,10 +2911,7 @@ computes the output.)DOC";
         "number of groups input channels and output channels are divided into.",
         AttributeProto::INT,
         static_cast<int64_t>(1));
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-      convPoolShapeInference_opset1_to_11(ctx, true, false, 0, 1);
-    });
+    schema.TypeAndShapeInferenceFunction(convShapeInference_opset1);
   };
 }
 
@@ -3101,7 +3139,7 @@ output_shape can also be explicitly specified in which case pads values are auto
         "number of groups input channels and output channels are divided into.",
         AttributeProto::INT,
         static_cast<int64_t>(1));
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) { convTransposeShapeInference_opset1(ctx); });
+    schema.TypeAndShapeInferenceFunction(convTransposeShapeInference_opset1);
   };
 }
 

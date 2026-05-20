@@ -21,6 +21,8 @@ constexpr const char* EMPTY_MAX =
     "plus infinity (if supported by the datatype) or the maximum value of the data type otherwise";
 constexpr const char* EMPTY_MINUS_INF = "minus infinity (if supported by the datatype) or undefined otherwise";
 
+void reduceShapeInference(InferenceContext& ctx);
+
 std::function<void(OpSchema&)> ReduceOpGenerator(
     const char* name,
     const char* empty_value,

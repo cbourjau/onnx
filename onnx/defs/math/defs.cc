@@ -46,6 +46,15 @@ static void MathOpDataPropagator(DataPropagationContext& ctx, const std::string&
   ctx.addOutputData(0, std::move(tsp));
 }
 
+static void binaryBroadcastShapeInference(InferenceContext& ctx) {
+  propagateElemTypeFromInputToOutput(ctx, 0, 0);
+  if (hasNInputShapes(ctx, 2))
+    bidirectionalBroadcastShapeInference(
+        ctx.getInputType(0)->tensor_type().shape(),
+        ctx.getInputType(1)->tensor_type().shape(),
+        *ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape());
+}
+
 static std::function<void(OpSchema&)> MathDocGenerator(const char* name) {
   return [=](OpSchema& schema) {
     std::string doc;
@@ -87,14 +96,7 @@ Performs element-wise binary {name} (with Numpy-style broadcasting support).
         OpSchema::Differentiable);
     schema.TypeConstraint(
         "T", OpSchema::all_numeric_types_ir4(), "Constrain input and output types to all numeric tensors.");
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-      if (hasNInputShapes(ctx, 2))
-        bidirectionalBroadcastShapeInference(
-            ctx.getInputType(0)->tensor_type().shape(),
-            ctx.getInputType(1)->tensor_type().shape(),
-            *ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape());
-    });
+    schema.TypeAndShapeInferenceFunction(binaryBroadcastShapeInference);
   };
 }
 
@@ -773,6 +775,22 @@ ONNX_OPERATOR_SET_SCHEMA(
           }
         )ONNX"));
 
+static void elementwiseMultiOpShapeInference(InferenceContext& ctx) {
+  propagateElemTypeFromInputToOutput(ctx, 0, 0);
+  int num_inputs = static_cast<int>(ctx.getNumInputs());
+  std::vector<const TensorShapeProto*> shapes;
+  shapes.reserve(num_inputs);
+  for (int i = 0; i < num_inputs; ++i) {
+    const auto* const input_type = ctx.getInputType(i);
+    if (nullptr == input_type || !input_type->has_tensor_type() || !input_type->tensor_type().has_shape()) {
+      return;
+    }
+    shapes.push_back(&input_type->tensor_type().shape());
+  }
+
+  multidirectionalBroadcastShapeInference(shapes, *ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape());
+}
+
 // Generate opschema for element-wise ops. Leaves type constraint "T"
 // unspecified.
 static std::function<void(OpSchema&)> ElementwiseMultiOpDocGenerator(const char* name) {
@@ -797,21 +815,7 @@ All inputs and outputs must have the same data type.
         1,
         OpSchema::Differentiable);
     schema.Output(0, name, "Output tensor.", "T", OpSchema::Single, true, 1, OpSchema::Differentiable);
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-      int num_inputs = static_cast<int>(ctx.getNumInputs());
-      std::vector<const TensorShapeProto*> shapes;
-      shapes.reserve(num_inputs);
-      for (int i = 0; i < num_inputs; ++i) {
-        const auto* const input_type = ctx.getInputType(i);
-        if (nullptr == input_type || !input_type->has_tensor_type() || !input_type->tensor_type().has_shape()) {
-          return;
-        }
-        shapes.push_back(&input_type->tensor_type().shape());
-      }
-
-      multidirectionalBroadcastShapeInference(shapes, *ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape());
-    });
+    schema.TypeAndShapeInferenceFunction(elementwiseMultiOpShapeInference);
   };
 }
 
@@ -941,6 +945,30 @@ ONNX_OPERATOR_SET_SCHEMA(
         .SetContextDependentFunctionBodyBuilder(BuildContextDependentFunctionBodyClip)
         .TypeAndShapeInferenceFunction(propagateShapeAndTypeFromFirstInput));
 
+static void softmaxShapeInference(InferenceContext& ctx) {
+  // Type inference
+  propagateElemTypeFromInputToOutput(ctx, 0, 0);
+
+  // Shape inference starts
+  if (!hasNInputShapes(ctx, 1)) {
+    return;
+  }
+
+  // Validate the value of 'axis'
+  const TensorShapeProto& input_shape = ctx.getInputType(0)->tensor_type().shape();
+  int r = input_shape.dim_size();
+  if (r == 0) {
+    fail_shape_inference("Input rank must be >= 1 for softmax family op.");
+  }
+  int axis = static_cast<int>(getAttribute(ctx, "axis", -1));
+  if (axis < -r || axis >= r) {
+    fail_shape_inference("'axis' must be in [", -r, " , ", (r - 1), "]. Its actual value is: ", axis);
+  }
+
+  // Shape inference
+  propagateShapeFromInputToOutput(ctx, 0, 0);
+}
+
 static std::function<void(OpSchema&)>
 SoftmaxFamilyDocGenerator(const char* name, const char* description, const char* equation) {
   return [=](OpSchema& schema) {
@@ -983,29 +1011,7 @@ from the back. Accepted range is [-r, r-1] where r = rank(input).
         "T",
         {types::Float16, types::Float, types::Double, types::BFloat16},
         "Constrain input and output types to float tensors.");
-    schema.TypeAndShapeInferenceFunction([name](InferenceContext& ctx) {
-      // Type inference
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-
-      // Shape inference starts
-      if (!hasNInputShapes(ctx, 1)) {
-        return;
-      }
-
-      // Validate the value of 'axis'
-      const TensorShapeProto& input_shape = ctx.getInputType(0)->tensor_type().shape();
-      int r = input_shape.dim_size();
-      if (r == 0) {
-        fail_shape_inference("Input rank must be >= 1 for ", name, ".");
-      }
-      int axis = static_cast<int>(getAttribute(ctx, "axis", -1));
-      if (axis < -r || axis >= r) {
-        fail_shape_inference("'axis' must be in [", -r, " , ", (r - 1), "]. Its actual value is: ", axis);
-      }
-
-      // Shape inference
-      propagateShapeFromInputToOutput(ctx, 0, 0);
-    });
+    schema.TypeAndShapeInferenceFunction(softmaxShapeInference);
   };
 }
 
@@ -2632,6 +2638,36 @@ ONNX_OPERATOR_SET_SCHEMA(
           updateOutputShape(ctx, output_index, result_shape_proto);
         }));
 
+static void cosineSumWindowShapeInference(InferenceContext& ctx) {
+  // Update the output data type to the output_datatype
+  auto output_datatype = getAttribute(ctx, "output_datatype", static_cast<int64_t>(TensorProto_DataType_FLOAT));
+  updateOutputElemType(ctx, 0, output_datatype);
+
+  if (!hasInputShape(ctx, 0)) {
+    // If no shape is available for the input, skip shape inference.
+    return;
+  }
+
+  const auto* const size = ctx.getInputData(0);
+  if (size == nullptr) {
+    // Size is not available, so return early
+    return;
+  }
+
+  if (size->dims_size() != 0) {
+    fail_shape_inference("size input must be a scalar.");
+  }
+
+  auto size_value = defs::math::utils::GetScalarValueFromTensor<int64_t>(size);
+  if (size_value <= 0) {
+    fail_shape_inference("size input must be greater than 0.");
+  }
+
+  ONNX_NAMESPACE::TensorShapeProto result_shape;
+  result_shape.add_dim()->set_dim_value(size_value);
+  updateOutputShape(ctx, 0, result_shape);
+}
+
 static std::function<void(OpSchema&)> CosineSumWindowOpDocGenerator(const char* name) {
   return [=](OpSchema& schema) {
     std::string doc;
@@ -2668,35 +2704,7 @@ Generates a {name} window as described in the paper https://ieeexplore.ieee.org/
     std::string output_doc("A {name} window with length: size. The output has the shape: [size].");
     ReplaceAll(output_doc, "{name}", name);
     schema.Output(0, "output", output_doc, "T2", OpSchema::Single, true, 1, OpSchema::NonDifferentiable);
-    schema.TypeAndShapeInferenceFunction([](ONNX_NAMESPACE::InferenceContext& ctx) {
-      // Update the output data type to the output_datatype
-      auto output_datatype = getAttribute(ctx, "output_datatype", static_cast<int64_t>(TensorProto_DataType_FLOAT));
-      updateOutputElemType(ctx, 0, output_datatype);
-
-      if (!hasInputShape(ctx, 0)) {
-        // If no shape is available for the input, skip shape inference.
-        return;
-      }
-
-      const auto* const size = ctx.getInputData(0);
-      if (size == nullptr) {
-        // Size is not available, so return early
-        return;
-      }
-
-      if (size->dims_size() != 0) {
-        fail_shape_inference("size input must be a scalar.");
-      }
-
-      auto size_value = defs::math::utils::GetScalarValueFromTensor<int64_t>(size);
-      if (size_value <= 0) {
-        fail_shape_inference("size input must be greater than 0.");
-      }
-
-      ONNX_NAMESPACE::TensorShapeProto result_shape;
-      result_shape.add_dim()->set_dim_value(size_value);
-      updateOutputShape(ctx, 0, result_shape);
-    });
+    schema.TypeAndShapeInferenceFunction(cosineSumWindowShapeInference);
   };
 }
 

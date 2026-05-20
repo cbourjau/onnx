@@ -393,6 +393,82 @@ void resizeShapeInference_opset7_to_10(InferenceContext& ctx) {
   }
 }
 
+// NOLINTNEXTLINE(misc-use-internal-linkage)
+void padShapeInference(InferenceContext& ctx) {
+  // Type inference
+  propagateElemTypeFromInputToOutput(ctx, 0, 0);
+  // Shape inference needs the input data shape
+  if (!hasNInputShapes(ctx, 1)) {
+    return;
+  }
+  const auto& input_shape = ctx.getInputType(0)->tensor_type().shape();
+  const auto input_rank = input_shape.dim_size();
+
+  std::vector<int64_t> axes;
+  if (hasInputShape(ctx, 3)) { //'axes' input
+    const auto* const axes_initializer = ctx.getInputData(3);
+    if (axes_initializer == nullptr)
+      return; // can't do shape inference then
+
+    axes = ParseData<int64_t>(axes_initializer);
+    checkAxesRange(axes, input_rank);
+    adjustNegativeAxes(axes, input_rank);
+    checkDuplicateAxes(axes, input_rank);
+  } else {
+    axes.resize(input_rank);
+    std::iota(axes.begin(), axes.end(), 0);
+  }
+
+  auto num_axes = axes.size();
+  auto* output_shape = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
+
+  // Populating default dims
+  std::vector<TensorShapeProto_Dimension*> out_dims(input_rank);
+  for (int i = 0; i < input_rank; ++i) {
+    out_dims[i] = output_shape->add_dim();
+  }
+
+  // Shape Inference if
+  //     1. 'pads' are available.
+  // and 2. 'axes' are available, or default.
+  const TensorProto* pads_initializer = ctx.getInputData(1);
+  if (nullptr != pads_initializer && !axes.empty()) {
+    if (pads_initializer->dims_size() != 1 || pads_initializer->data_type() != TensorProto::INT64) {
+      fail_shape_inference("'pads' input must be a 1D (shape: [2 * num_axes]) tensor of type int64");
+    }
+
+    const auto pads_data = ParseData<int64_t>(pads_initializer);
+    if (pads_data.size() != 2 * num_axes) {
+      fail_shape_inference(
+          "Pads has incorrect number of values. Expected 2 * ",
+          num_axes,
+          " values. Got ",
+          pads_data.size(),
+          " values.");
+    }
+
+    // Set default dim values
+    for (int i = 0; i < input_rank; ++i) {
+      const auto& input_dim = input_shape.dim(i);
+      if (input_dim.has_dim_value()) {
+        out_dims[i]->set_dim_value(input_dim.dim_value());
+      }
+    }
+
+    for (size_t i = 0; i < num_axes; ++i) {
+      auto axis = axes[i];
+      const auto& input_dim = input_shape.dim(axis);
+      auto& out_dim = *out_dims[axis];
+      auto total_pad = pads_data[i] + pads_data[num_axes + i];
+      if (input_dim.has_dim_value()) {
+        out_dim.set_dim_value(input_dim.dim_value() + total_pad);
+      } else if (total_pad == 0) {
+        out_dim = input_dim;
+      }
+    }
+  }
+}
+
 std::function<void(OpSchema&)> PadDocGenerator(
     const char* description,
     const char* mode_description,
@@ -443,80 +519,7 @@ std::function<void(OpSchema&)> PadDocGenerator(
     schema.Output(0, "output", "Tensor after padding.", "T", OpSchema::Single, true, 1, OpSchema::Differentiable);
     schema.TypeConstraint("T", op_schema, op_schema_description);
     schema.TypeConstraint("Tind", {types::Int32, types::Int64}, "Constrain indices to integer types");
-    schema.TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-      // Type inference
-      propagateElemTypeFromInputToOutput(ctx, 0, 0);
-      // Shape inference needs the input data shape
-      if (!hasNInputShapes(ctx, 1)) {
-        return;
-      }
-      const auto& input_shape = ctx.getInputType(0)->tensor_type().shape();
-      const auto input_rank = input_shape.dim_size();
-
-      std::vector<int64_t> axes;
-      if (hasInputShape(ctx, 3)) { //'axes' input
-        const auto* const axes_initializer = ctx.getInputData(3);
-        if (axes_initializer == nullptr)
-          return; // can't do shape inference then
-
-        axes = ParseData<int64_t>(axes_initializer);
-        checkAxesRange(axes, input_rank);
-        adjustNegativeAxes(axes, input_rank);
-        checkDuplicateAxes(axes, input_rank);
-      } else {
-        axes.resize(input_rank);
-        std::iota(axes.begin(), axes.end(), 0);
-      }
-
-      auto num_axes = axes.size();
-      auto* output_shape = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
-
-      // Populating default dims
-      std::vector<TensorShapeProto_Dimension*> out_dims(input_rank);
-      for (int i = 0; i < input_rank; ++i) {
-        out_dims[i] = output_shape->add_dim();
-      }
-
-      // Shape Inference if
-      //     1. 'pads' are available.
-      // and 2. 'axes' are available, or default.
-      const TensorProto* pads_initializer = ctx.getInputData(1);
-      if (nullptr != pads_initializer && !axes.empty()) {
-        if (pads_initializer->dims_size() != 1 || pads_initializer->data_type() != TensorProto::INT64) {
-          fail_shape_inference("'pads' input must be a 1D (shape: [2 * num_axes]) tensor of type int64");
-        }
-
-        const auto pads_data = ParseData<int64_t>(pads_initializer);
-        if (pads_data.size() != 2 * num_axes) {
-          fail_shape_inference(
-              "Pads has incorrect number of values. Expected 2 * ",
-              num_axes,
-              " values. Got ",
-              pads_data.size(),
-              " values.");
-        }
-
-        // Set default dim values
-        for (int i = 0; i < input_rank; ++i) {
-          const auto& input_dim = input_shape.dim(i);
-          if (input_dim.has_dim_value()) {
-            out_dims[i]->set_dim_value(input_dim.dim_value());
-          }
-        }
-
-        for (size_t i = 0; i < num_axes; ++i) {
-          auto axis = axes[i];
-          const auto& input_dim = input_shape.dim(axis);
-          auto& out_dim = *out_dims[axis];
-          auto total_pad = pads_data[i] + pads_data[num_axes + i];
-          if (input_dim.has_dim_value()) {
-            out_dim.set_dim_value(input_dim.dim_value() + total_pad);
-          } else if (total_pad == 0) {
-            out_dim = input_dim;
-          }
-        }
-      }
-    });
+    schema.TypeAndShapeInferenceFunction(padShapeInference);
   };
 }
 } // namespace ONNX_NAMESPACE
