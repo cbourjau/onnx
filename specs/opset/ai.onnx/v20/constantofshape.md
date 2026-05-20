@@ -1,0 +1,26 @@
+---
+inherit: v9/constantofshape
+since_version: 20
+type_constraints:
+  update:
+  - name: T2
+    doc: Constrain output types to be numerics.
+    allowed:
+    - tensor(bfloat16)
+    - tensor(bool)
+    - tensor(double)
+    - tensor(float)
+    - tensor(float16)
+    - tensor(float8e4m3fn)
+    - tensor(float8e4m3fnuz)
+    - tensor(float8e5m2)
+    - tensor(float8e5m2fnuz)
+    - tensor(int16)
+    - tensor(int32)
+    - tensor(int64)
+    - tensor(int8)
+    - tensor(uint16)
+    - tensor(uint32)
+    - tensor(uint64)
+    - tensor(uint8)
+---

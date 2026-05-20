@@ -26,8 +26,20 @@ from models import (
 
 import onnx.defs
 import onnx.helper
+import onnx.printer
 
 SPECS_DIR = Path(__file__).resolve().parent.parent / "opset"
+
+
+class _LiteralStr(str):  # noqa: SLOT000
+    """String subclass that serializes as a YAML literal block scalar."""
+
+
+def _literal_representer(dumper: yaml.Dumper, data: _LiteralStr) -> yaml.ScalarNode:
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+
+
+yaml.add_representer(_LiteralStr, _literal_representer)
 
 
 def _differentiable(param) -> bool | None:
@@ -136,6 +148,10 @@ def schema_to_base_spec(schema: onnx.defs.OpSchema) -> BaseSpec:
         )
     attributes.sort(key=lambda a: (not a.required, a.name))
 
+    function_body: str | None = None
+    if schema.has_function:  # type: ignore[attr-defined]
+        function_body = onnx.printer.to_text(schema.function_body)
+
     return BaseSpec(
         op=schema.name,
         domain=domain,
@@ -143,6 +159,7 @@ def schema_to_base_spec(schema: onnx.defs.OpSchema) -> BaseSpec:
         support_level=_support_level(schema),
         deprecated=schema.deprecated,
         deterministic=_is_deterministic(schema),
+        function_body=function_body,
         doc=(schema.doc or "").strip(),
         type_constraints=type_constraints,
         inputs=inputs,
@@ -173,6 +190,8 @@ def generate_spec_file(spec: BaseSpec | InheritedSpec) -> str:
     data = spec.model_dump(exclude_none=True, exclude_defaults=True)
     _prune_empty(data)
     doc = data.pop("doc", "")
+    if "function_body" in data:
+        data["function_body"] = _LiteralStr(data["function_body"])
     yaml_str = yaml.dump(
         data, default_flow_style=False, sort_keys=False, allow_unicode=True
     )

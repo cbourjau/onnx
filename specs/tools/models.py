@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Annotated, Generic, Literal, TypeVar
 import yaml
 from pydantic import AfterValidator, BaseModel, TypeAdapter
 
+import onnx.parser
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -164,6 +166,15 @@ def _validate_onnx_type_str(v: str) -> str:
 OnnxTypeStr = Annotated[str, AfterValidator(_validate_onnx_type_str)]
 
 
+def _validate_function_body(v: str) -> str:
+    """Validate that a function body string parses as a FunctionProto."""
+    onnx.parser.parse_function(v)
+    return v
+
+
+FunctionBodyStr = Annotated[str, AfterValidator(_validate_function_body)]
+
+
 class TypeConstraint(BaseModel):
     name: str
     doc: str
@@ -212,6 +223,7 @@ class BaseSpec(BaseModel):
     support_level: SupportLevel = "common"
     deprecated: bool = False
     deterministic: bool = True
+    function_body: FunctionBodyStr | None = None
     doc: str
     type_constraints: list[TypeConstraint] = []
     inputs: list[Variable] = []
@@ -237,6 +249,9 @@ class BaseSpec(BaseModel):
             deterministic=child.deterministic
             if child.deterministic != self.deterministic
             else None,
+            function_body=child.function_body
+            if child.function_body != self.function_body
+            else None,
             doc=child.doc if child.doc != self.doc else None,
             type_constraints=tc_diff if not tc_diff.is_empty() else None,
             inputs=inputs_diff if not inputs_diff.is_empty() else None,
@@ -259,6 +274,9 @@ class BaseSpec(BaseModel):
             deterministic=diff.deterministic
             if diff.deterministic is not None
             else self.deterministic,
+            function_body=diff.function_body
+            if diff.function_body is not None
+            else self.function_body,
             doc=diff.doc if diff.doc is not None else self.doc,
             type_constraints=_apply_list_diff(
                 self.type_constraints, diff.type_constraints
@@ -277,6 +295,7 @@ class InheritedSpec(BaseModel):
     support_level: SupportLevel | None = None
     deprecated: bool | None = None
     deterministic: bool | None = None
+    function_body: FunctionBodyStr | None = None
     doc: str | None = None
     type_constraints: NamedListDiff[TypeConstraint] | None = None
     inputs: NamedListDiff[Variable] | None = None
