@@ -55,52 +55,6 @@ static void binaryBroadcastShapeInference(InferenceContext& ctx) {
         ctx.getInputType(1)->tensor_type().shape(),
         *ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape());
 }
-
-static std::function<void(OpSchema&)> MathDocGenerator(const char* name) {
-  return [=](OpSchema& schema) {
-    std::string doc;
-    if (std::string(name) == "division") {
-      POPULATE_OP_DOC_STR(
-          doc = R"DOC(
-Performs element-wise binary {name} (with Numpy-style broadcasting support).
-
-{broadcast_doc}
-
-For integer inputs, the result is computed using truncating division (rounding toward zero).
-(Opset 14 change): Extend supported types to include uint8, int8, uint16, and int16.
-)DOC";
-          ReplaceAll(doc, "{name}", name);
-          ReplaceAll(doc, "{broadcast_doc}", GenerateBroadcastingDocMul().c_str()););
-    } else {
-      POPULATE_OP_DOC_STR(
-          doc = R"DOC(
-Performs element-wise binary {name} (with Numpy-style broadcasting support).
-
-{broadcast_doc}
-
-(Opset 14 change): Extend supported types to include uint8, int8, uint16, and int16.
-)DOC";
-          ReplaceAll(doc, "{name}", name);
-          ReplaceAll(doc, "{broadcast_doc}", GenerateBroadcastingDocMul().c_str()););
-    }
-    schema.SetDoc(doc);
-    schema.Input(0, "A", "First operand.", "T", OpSchema::Single, true, 1, OpSchema::Differentiable);
-    schema.Input(1, "B", "Second operand.", "T", OpSchema::Single, true, 1, OpSchema::Differentiable);
-    schema.Output(
-        0,
-        "C",
-        "Result, has same element type as two inputs",
-        "T",
-        OpSchema::Single,
-        true,
-        1,
-        OpSchema::Differentiable);
-    schema.TypeConstraint(
-        "T", OpSchema::all_numeric_types_ir4(), "Constrain input and output types to all numeric tensors.");
-    schema.TypeAndShapeInferenceFunction(binaryBroadcastShapeInference);
-  };
-}
-
 ONNX_OPERATOR_SET_SCHEMA(
     Add,
     14,
@@ -116,27 +70,6 @@ ONNX_OPERATOR_SET_SCHEMA(
         .FillUsing(Sub_v14_FillSpec)
         .TypeAndShapeInferenceFunction(binaryBroadcastShapeInference)
         .PartialDataPropagationFunction([](DataPropagationContext& ctx) { MathOpDataPropagator(ctx, "Sub"); }));
-
-static constexpr const char* Mod_doc = R"DOC(
-Performs an element-wise binary modulo operation.
-The semantics and supported data types depend on the value of the `fmod` attribute which must be `0` (default), or `1`.
-
-If the `fmod` attribute is set to `0`, `T` is constrained to integer data types and the semantics follow that of the Python `%`-operator.
-The sign of the result is that of the divisor.
-
-If `fmod` is set to `1`, the behavior of this operator follows that of the `fmod` function in C and `T` is constrained to floating point data types.
-The result of this operator is the remainder of the division operation `x / y` where `x` and `y` are respective elements of `A` and `B`. The result is exactly the value `x - n * y`, where `n` is `x / y` with its fractional part truncated.
-The returned value has the same sign as `x` (except if `x` is `-0`) and is less or equal to `|y|` in magnitude.
-The following special cases apply when `fmod` is set to `1`:
-- If `x` is `-0` and `y` is greater than zero, either `+0` or `-0` may be returned.
-- If `x` is `±∞` and `y` is not `NaN`, `NaN` is returned.
-- If `y` is `±0` and `x` is not `NaN`, `NaN` should be returned.
-- If `y` is `±∞` and `x` is finite, `x` is returned.
-- If either argument is `NaN`, `NaN` is returned.
-
-This operator supports **multidirectional (i.e., NumPy-style) broadcasting**; for more details please check [the doc](Broadcasting.md).
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     Mod,
     13,
@@ -166,13 +99,6 @@ ONNX_OPERATOR_SET_SCHEMA(
     Neg,
     13,
     OpSchema().FillUsing(Neg_v13_FillSpec).TypeAndShapeInferenceFunction(propagateShapeAndTypeFromFirstInput));
-
-static constexpr const char* Abs_ver13_doc = R"DOC(
-Absolute takes one input data (Tensor<T>) and produces one output data
-(Tensor<T>) where absolute value, y = abs(x), is applied to
-the tensor elementwise.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     Abs,
     13,
@@ -182,24 +108,10 @@ ONNX_OPERATOR_SET_SCHEMA(
     Reciprocal,
     13,
     OpSchema().FillUsing(Reciprocal_v13_FillSpec).TypeAndShapeInferenceFunction(propagateShapeAndTypeFromFirstInput));
-
-static constexpr const char* Floor_ver13_doc = R"DOC(
-Floor takes one input data (Tensor<T>) and produces one output data
-(Tensor<T>) where the floor is, y = floor(x), is applied to
-the tensor elementwise. If x is integral, +0, -0, NaN,  or infinite, x itself is returned.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     Floor,
     13,
     OpSchema().FillUsing(Floor_v13_FillSpec).TypeAndShapeInferenceFunction(propagateShapeAndTypeFromFirstInput));
-
-static constexpr const char* Ceil_ver13_doc = R"DOC(
-Ceil takes one input data (Tensor<T>) and produces one output data
-(Tensor<T>) where the ceil is, y = ceil(x), is applied to
-the tensor elementwise. If x is integral, +0, -0, NaN,  or infinite, x itself is returned.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     Ceil,
     13,
@@ -326,17 +238,6 @@ ONNX_OPERATOR_SET_SCHEMA(
            }
         )ONNX")
         .TypeAndShapeInferenceFunction(propagateShapeAndTypeFromFirstInput));
-
-static constexpr const char* celu_ver12_doc = R"DOC(
-Continuously Differentiable Exponential Linear Units:
-Perform the linear unit element-wise on the input tensor X
-using formula:
-
-```
-max(0,x) + min(0,alpha*(exp(x/alpha)-1))
-```
-)DOC";
-
 static float celu_default_alpha = 1.0;
 
 static bool BuildContextDependentFunctionBodyCelu(
@@ -361,17 +262,6 @@ ONNX_OPERATOR_SET_SCHEMA(
         .FillUsing(Celu_v12_FillSpec)
         .SetContextDependentFunctionBodyBuilder(BuildContextDependentFunctionBodyCelu)
         .TypeAndShapeInferenceFunction(propagateShapeAndTypeFromFirstInput));
-
-static constexpr const char* gelu_ver20_doc = R"DOC(
-Gelu takes one input data (Tensor<T>) and produces one
-output data (Tensor<T>) where the gaussian error linear units function,
-$y = 0.5 * x * (1 + erf(x/sqrt(2)))$ is applied to the tensor elementwise.
-If the attribute "approximate" is set to "tanh", the function estimation,
-$y = 0.5 * x * (1 + Tanh(sqrt(2/\pi) * (x + 0.044715 * x^3)))$ is used and applied
-to the tensor elementwise.
-
-)DOC";
-
 static constexpr const char* gelu_default_approx = "none";
 
 static bool BuildContextDependentFunctionBodyGelu(
@@ -432,12 +322,6 @@ ONNX_OPERATOR_SET_SCHEMA(
         .FillUsing(Gelu_v20_FillSpec)
         .SetContextDependentFunctionBodyBuilder(BuildContextDependentFunctionBodyGelu)
         .TypeAndShapeInferenceFunction(propagateShapeAndTypeFromFirstInput));
-
-static constexpr const char* Swish_ver24_doc = R"DOC(
-Swish function takes one input data (Tensor<T>) and produces one output data (Tensor<T>) of the same shape,
-where $Swish(x) = x * sigmoid(alpha * x)$.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     Swish,
     24,
@@ -559,32 +443,6 @@ static void elementwiseMultiOpShapeInference(InferenceContext& ctx) {
 
 // Generate opschema for element-wise ops. Leaves type constraint "T"
 // unspecified.
-static std::function<void(OpSchema&)> ElementwiseMultiOpDocGenerator(const char* name) {
-  return [=](OpSchema& schema) {
-    std::string doc;
-    POPULATE_OP_DOC_STR(
-        doc = R"DOC(
-Element-wise {name} of each of the input tensors (with Numpy-style broadcasting support).
-All inputs and outputs must have the same data type.
-{broadcast_doc}
-)DOC";
-        ReplaceAll(doc, "{name}", name);
-        ReplaceAll(doc, "{broadcast_doc}", GenerateBroadcastingDocMul().c_str()););
-    schema.SetDoc(doc);
-    schema.Input(
-        0,
-        "data_0",
-        "List of tensors for " + std::string(name) + ".",
-        "T",
-        OpSchema::Variadic,
-        true,
-        1,
-        OpSchema::Differentiable);
-    schema.Output(0, name, "Output tensor.", "T", OpSchema::Single, true, 1, OpSchema::Differentiable);
-    schema.TypeAndShapeInferenceFunction(elementwiseMultiOpShapeInference);
-  };
-}
-
 ONNX_OPERATOR_SET_SCHEMA(
     Max,
     13,
@@ -604,15 +462,6 @@ ONNX_OPERATOR_SET_SCHEMA(
     Mean,
     13,
     OpSchema().FillUsing(Mean_v13_FillSpec).TypeAndShapeInferenceFunction(elementwiseMultiOpShapeInference));
-
-static constexpr const char* Clip_ver13_doc = R"DOC(
-Clip operator limits the given input within an interval. The interval is
-specified by the inputs 'min' and 'max'. They default to
-numeric_limits::lowest() and numeric_limits::max(), respectively.
-When 'min' is greater than 'max', the clip operator sets all the 'input' values to
-the value of 'max'. Thus, this is equivalent to 'Min(max, Max(input, min))'.
-)DOC";
-
 static bool BuildContextDependentFunctionBodyClip(
     const FunctionBodyBuildContext& ctx,
     const OpSchema& schema,
@@ -671,53 +520,6 @@ static void softmaxShapeInference(InferenceContext& ctx) {
   // Shape inference
   propagateShapeFromInputToOutput(ctx, 0, 0);
 }
-
-static std::function<void(OpSchema&)>
-SoftmaxFamilyDocGenerator(const char* name, const char* description, const char* equation) {
-  return [=](OpSchema& schema) {
-    std::string doc;
-    POPULATE_OP_DOC_STR(
-        doc = R"DOC(
-The operator computes the {description} values for the given input:
-
- {equation}
-
-The "axis" attribute indicates the dimension along which {name}
-will be performed. The output tensor has the same shape
-and contains the {name} values of the corresponding input.
-)DOC";
-        ReplaceAll(doc, "{name}", name);
-        ReplaceAll(doc, "{description}", description);
-        ReplaceAll(doc, "{equation}", equation););
-    std::string axis_attr;
-    POPULATE_OP_DOC_STR(
-        axis_attr = R"DOC(
-Describes the dimension {name} will be performed on.
-Negative value means counting dimensions
-from the back. Accepted range is [-r, r-1] where r = rank(input).
-)DOC";
-        ReplaceAll(axis_attr, "{name}", name););
-    schema.SetDoc(doc);
-    schema.Attr("axis", axis_attr, AttributeProto::INT, static_cast<int64_t>(-1));
-    schema.Input(
-        0, "input", "The input tensor of rank >= axis.", "T", OpSchema::Single, true, 1, OpSchema::Differentiable);
-    schema.Output(
-        0,
-        "output",
-        "The output values with the same shape as the input tensor.",
-        "T",
-        OpSchema::Single,
-        true,
-        1,
-        OpSchema::Differentiable);
-    schema.TypeConstraint(
-        "T",
-        {types::Float16, types::Float, types::Double, types::BFloat16},
-        "Constrain input and output types to float tensors.");
-    schema.TypeAndShapeInferenceFunction(softmaxShapeInference);
-  };
-}
-
 ONNX_OPERATOR_SET_SCHEMA(
     Softmax,
     13,
@@ -837,19 +639,6 @@ ONNX_OPERATOR_SET_SCHEMA(
             }
             )ONNX",
             18));
-
-static constexpr const char* Gemm_ver13_doc = R"DOC(General Matrix multiplication:
-https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms#Level_3
-
-* A' = transpose(A) if transA else A
-* B' = transpose(B) if transB else B
-
-Compute Y = alpha * A' * B' + beta * C, where input tensor A has shape (M, K) or (K, M),
-input tensor B has shape (K, N) or (N, K), input tensor C is broadcastable to shape (M, N),
-and output tensor Y has shape (M, N). A will be transposed before doing the
-computation if attribute transA is non-zero, same for B and transB.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     Gemm,
     13,
@@ -975,12 +764,6 @@ ONNX_OPERATOR_SET_SCHEMA(
     OpSchema()
         .FillUsing(QLinearMatMul_v21_FillSpec)
         .TypeAndShapeInferenceFunction(defs::math::utils::QLinearMatMulShapeInference));
-
-static constexpr const char* MatMulInteger_ver10_doc = R"DOC(
-Matrix product that behaves like [numpy.matmul](https://numpy.org/doc/stable/reference/generated/numpy.matmul.html).
-The production MUST never overflow. The accumulation may overflow if and only if in 32 bits.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     MatMulInteger,
     10,
@@ -1001,29 +784,6 @@ ONNX_OPERATOR_SET_SCHEMA(
 
           defs::math::utils::MatMulShapeInference(ctx, 0, 1);
         }));
-
-static const char* const CumProd_ver26_doc = R"DOC(
-Performs cumulative product of the input elements along the given axis.
-By default, it will do the product inclusively meaning the first element is copied as is.
-Through an `exclusive` attribute, this behavior can change to exclude the first element.
-It can also perform product in the opposite direction of the axis. For that, set `reverse` attribute to 1.
-
-Example:
-```
-input_x = [1, 2, 3]
-axis=0
-output = [1, 2, 6]
-exclusive=1
-output = [1, 1, 2]
-exclusive=0
-reverse=1
-output = [6, 6, 3]
-exclusive=1
-reverse=1
-output = [6, 3, 1]
-```
- )DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     CumProd,
     26,
@@ -1426,35 +1186,6 @@ static void einsumShapeInference(ONNX_NAMESPACE::InferenceContext& ctx, std::str
 
   updateOutputShape(ctx, 0, output_shape);
 }
-
-static constexpr const char* Einsum_ver12_doc = R"DOC(
-An einsum of the form `term1, term2 -> output-term` produces an output tensor using the following equation
-
-```
-output[output-term] = reduce-sum( input1[term1] * input2[term2] )
-```
-
-where the reduce-sum performs a summation over all the indices occurring in the input terms (term1, term2)
-that do not occur in the output-term.
-
-The Einsum operator evaluates algebraic tensor operations on a sequence of tensors, using the Einstein summation
-convention. The equation string contains a comma-separated sequence of lower case letters. Each term corresponds to
-an operand tensor, and the characters within the terms correspond to operands dimensions.
-
-This sequence may be followed by "->" to separate the left and right hand side of the equation.
-If the equation contains "->" followed by the right-hand side, the explicit (not classical) form of the Einstein
-summation is performed, and the right-hand side indices indicate output tensor dimensions. In other cases,
-output indices are (implicitly) set to the alphabetically sorted sequence of indices appearing exactly once in the
-equation.
-
-When a dimension character is repeated in the left-hand side, it represents summation along the dimension.
-
-The equation may contain ellipsis ("...") to enable broadcasting. Ellipsis must indicate a fixed number of dimensions.
-Specifically, every occurrence of ellipsis in the equation must represent the same number of dimensions.
-The right-hand side may contain exactly one ellipsis. In implicit mode, the ellipsis dimensions are set to the
-beginning of the output. The equation string may contain space (U+0020) character.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     Einsum,
     12,
@@ -1470,57 +1201,6 @@ ONNX_OPERATOR_SET_SCHEMA(
                      equation.end()); // Remove space char
       einsumShapeInference(ctx, equation);
     }));
-
-static constexpr const char* reduction_doc_sce =
-    "Type of reduction to apply to loss: none, sum, mean(default). "
-    "'none': no reduction will be applied, "
-    "'sum': the output will be summed. "
-    "'mean': the sum of the output will be divided by the number of "
-    "elements in the output.";
-
-static constexpr const char* SoftmaxCrossEntropyLoss_ver13_doc =
-    R"DOC(Loss function that measures the softmax cross entropy
-between 'scores' and 'labels'.
-This operator first computes a loss tensor whose shape is identical to the labels input.
-If the input is 2-D with shape (N, C), the loss tensor may be a N-element vector L = (l_1, l_2, ..., l_N).
-If the input is N-D tensor with shape (N, C, D1, D2, ..., Dk),
-the loss tensor L may have (N, D1, D2, ..., Dk) as its shape and L[i,][j_1][j_2]...[j_k] denotes a scalar element in L.
-After L is available, this operator can optionally do a reduction operator.
-
-* shape(scores): (N, C) where C is the number of classes, or (N, C, D1, D2,..., Dk),
-  with K >= 1 in case of K-dimensional loss.
-* shape(labels): (N) where each value is 0 <= labels[i] <= C-1, or (N, D1, D2,..., Dk),
-  with K >= 1 in case of K-dimensional loss.
-
-The loss for one sample, l_i, can calculated as follows:
-```
-l[i][d1][d2]...[dk] = -y[i][c][d1][d2]..[dk], where i is the index of classes.
-```
-or
-```
-l[i][d1][d2]...[dk] = -y[i][c][d1][d2]..[dk] * weights[c], if 'weights' is provided.
-```
-
-loss is zero for the case when label-value equals ignore_index.
-```
-l[i][d1][d2]...[dk]  = 0, when labels[n][d1][d2]...[dk] = ignore_index
-```
-
-where:
-```
-p = Softmax(scores)
-y = Log(p)
-c = labels[i][d1][d2]...[dk]
-```
-
-Finally, L is optionally reduced:
-
-* If reduction = 'none', the output is L with shape (N, D1, D2, ..., Dk).
-* If reduction = 'sum', the output is scalar: Sum(L).
-* If reduction = 'mean', the output is scalar: ReduceMean(L), or if weight is provided: `ReduceSum(L) / ReduceSum(W)`,
-  where tensor W is of shape `(N, D1, D2, ..., Dk)` and `W[n][d1][d2]...[dk] = weights[labels[i][d1][d2]...[dk]]`.
-)DOC";
-
 static bool BuildContextDependentFunctionBodySCE(
     const FunctionBodyBuildContext& ctx,
     const OpSchema& schema,
@@ -1580,27 +1260,6 @@ ONNX_OPERATOR_SET_SCHEMA(
             propagateShapeFromInputToOutput(ctx, 0, 1);
           }
         }));
-
-static constexpr const char* DFT_ver20_doc =
-    R"DOC(Computes the discrete Fourier Transform (DFT) of the input.
-
-Assuming the input has shape `[M, N]`, where `N` is the dimension over which the
-DFT is computed and `M` denotes the conceptual "all other dimensions,"
-the DFT `y[m, k]` of shape `[M, N]` is defined as
-
-$$y[m, k] = \sum_{n=0}^{N-1} e^{-2 \pi j \frac{k n}{N} } x[m, n] ,$$
-
-and the inverse transform is defined as
-
-$$x[m, n] = \frac{1}{N} \sum_{k=0}^{N-1} e^{2 \pi j \frac{k n}{N} } y[m, k] ,$$
-
-where $j$ is the imaginary unit.
-
-The actual shape of the output is specified in the "output" section.
-
-Reference: https://docs.scipy.org/doc/scipy/tutorial/fft.html
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     DFT,
     20,
@@ -1798,47 +1457,6 @@ static void cosineSumWindowShapeInference(InferenceContext& ctx) {
   result_shape.add_dim()->set_dim_value(size_value);
   updateOutputShape(ctx, 0, result_shape);
 }
-
-static std::function<void(OpSchema&)> CosineSumWindowOpDocGenerator(const char* name) {
-  return [=](OpSchema& schema) {
-    std::string doc;
-    POPULATE_OP_DOC_STR(
-        doc = R"DOC(
-Generates a {name} window as described in the paper https://ieeexplore.ieee.org/document/1455106.
-)DOC";
-        ReplaceAll(doc, "{name}", name););
-
-    schema.SetDoc(doc);
-    schema.Attr(
-        "output_datatype",
-        "The data type of the output tensor. "
-        "Strictly must be one of the values from DataType enum in TensorProto whose values correspond to T2. "
-        "The default value is 1 = FLOAT. ",
-        AttributeProto::INT,
-        static_cast<int64_t>(TensorProto_DataType_FLOAT));
-    schema.Attr(
-        "periodic",
-        "If 1, returns a window to be used as periodic function. If 0, return a symmetric window. "
-        "When 'periodic' is specified, hann computes a window of length size + 1 and returns the first size points. "
-        "The default value is 1. ",
-        AttributeProto::INT,
-        static_cast<int64_t>(1));
-    schema.Input(
-        0,
-        "size",
-        "A scalar value indicating the length of the window.",
-        "T1",
-        OpSchema::Single,
-        true,
-        1,
-        OpSchema::NonDifferentiable);
-    std::string output_doc("A {name} window with length: size. The output has the shape: [size].");
-    ReplaceAll(output_doc, "{name}", name);
-    schema.Output(0, "output", output_doc, "T2", OpSchema::Single, true, 1, OpSchema::NonDifferentiable);
-    schema.TypeAndShapeInferenceFunction(cosineSumWindowShapeInference);
-  };
-}
-
 ONNX_OPERATOR_SET_SCHEMA(
     HannWindow,
     17,
@@ -1949,18 +1567,6 @@ ONNX_OPERATOR_SET_SCHEMA(
           output = Cast <to : int = @output_datatype> (Temp1)
         }
         )ONNX"));
-
-static constexpr const char* MelWeightMatrix_ver17_doc = R"DOC(
-Generate a MelWeightMatrix that can be used to re-weight a Tensor containing a linearly sampled frequency spectra (from DFT or STFT) into num_mel_bins frequency information based on the [lower_edge_hertz, upper_edge_hertz] range on the mel scale.
-This function defines the mel scale in terms of a frequency in hertz according to the following formula:
-
-    mel(f) = 2595 * log10(1 + f/700)
-
-In the returned matrix, all the triangles (filterbanks) have a peak value of 1.0.
-
-The returned MelWeightMatrix can be used to right-multiply a spectrogram S of shape [frames, num_spectrogram_bins] of linear scale spectrum values (e.g. STFT magnitudes) to generate a "mel spectrogram" M of shape [frames, num_mel_bins].
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     MelWeightMatrix,
     17,
@@ -1999,9 +1605,6 @@ ONNX_OPERATOR_SET_SCHEMA(
             updateOutputShape(ctx, 0, result_shape);
           }
         }));
-
-static constexpr const char* STFT_ver17_doc = R"DOC(Computes the Short-time Fourier Transform of the signal.)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     STFT,
     17,

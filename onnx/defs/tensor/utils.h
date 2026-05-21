@@ -53,10 +53,4 @@ extern const char* NonZero_ver9_doc;
 extern const char* Transpose_doc;
 
 void padShapeInference(InferenceContext& ctx);
-
-std::function<void(OpSchema&)> PadDocGenerator(
-    const char* description,
-    const char* mode_description,
-    std::vector<std::string> op_schema = OpSchema::all_tensor_types_ir4(),
-    std::string op_schema_description = "Constrain input and output types to all tensor types.");
 } // namespace ONNX_NAMESPACE

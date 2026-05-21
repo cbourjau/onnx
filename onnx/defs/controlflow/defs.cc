@@ -14,16 +14,6 @@
 
 namespace ONNX_NAMESPACE {
 using SupportType = OpSchema::SupportType;
-
-static std::vector<std::string> control_flow_types_ir13() {
-  auto t = OpSchema::all_tensor_types_ir13();
-  auto s = OpSchema::all_tensor_sequence_types_ir13();
-  auto o = OpSchema::all_optional_types_ir13();
-  t.insert(t.end(), s.begin(), s.end());
-  t.insert(t.end(), o.begin(), o.end());
-  return t;
-}
-
 ONNX_OPERATOR_SET_SCHEMA(
     If,
     25,

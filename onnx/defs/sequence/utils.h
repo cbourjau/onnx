@@ -16,11 +16,6 @@ namespace ONNX_NAMESPACE {
 namespace defs {
 namespace sequence {
 namespace utils {
-
-std::function<void(OpSchema&)> SplitToSequenceOpGenerator(
-    std::vector<std::string> input_types,
-    std::vector<std::string> output_types);
-
 void splitToSequenceShapeInference(InferenceContext& ctx);
 
 } // namespace utils

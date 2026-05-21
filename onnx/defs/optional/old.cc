@@ -7,10 +7,6 @@
 #include "onnx/defs/type_builders.h"
 
 namespace ONNX_NAMESPACE {
-static constexpr const char* OptionalHasElement_ver1_doc = R"DOC(
-Returns true if the optional-type input contains an element. If it is an empty optional-type, this op returns false.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     OptionalHasElement,
     15,
@@ -27,12 +23,6 @@ ONNX_OPERATOR_SET_SCHEMA(
       output_tensor_type->set_elem_type(TensorProto::BOOL);
       output_tensor_type->mutable_shape()->Clear();
     }));
-
-static constexpr const char* OptionalGetElement_ver1_doc = R"DOC(
-Outputs the element in the optional-type input. It is an error if the input value does not have an element
-and the behavior is undefined in this case.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     OptionalGetElement,
     15,

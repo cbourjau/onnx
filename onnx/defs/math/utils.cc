@@ -14,25 +14,6 @@ namespace ONNX_NAMESPACE {
 namespace defs {
 namespace math {
 namespace utils {
-
-static constexpr const char* TopK_ver11_doc = R"DOC(
-Retrieve the top-K largest or smallest elements along a specified axis. Given an input tensor of
-shape [a_0, a_1, ..., a_{n-1}] and integer argument k, return two outputs:
-
-* Value tensor of shape [a_0, a_1, ..., a_{axis-1}, k, a_{axis+1}, ... a_{n-1}]
-  which contains the values of the top k elements along the specified axis
-* Index tensor of shape [a_0, a_1, ..., a_{axis-1}, k, a_{axis+1}, ... a_{n-1}] which
-  contains the indices of the top k elements (original indices from the input
-  tensor).
-
-* If "largest" is 1 (the default value) then the k largest elements are returned.
-* If "sorted" is 1 (the default value) then the resulting k elements will be sorted.
-* If "sorted" is 0, order of returned 'Values' and 'Indices' are undefined.
-
-Given two equivalent values, this operator uses the indices along the axis as
-a tiebreaker. That is, the element with the lower index will appear first.
-)DOC";
-
 void topKShapeInference(InferenceContext& ctx) {
   // Type inference:
   propagateElemTypeFromInputToOutput(ctx, 0, 0);
@@ -90,78 +71,6 @@ void topKShapeInference(InferenceContext& ctx) {
     output_shape_1->add_dim();
   }
 }
-
-std::function<void(OpSchema&)> TopKOpGenerator(std::vector<std::string> allowed_types) {
-  return [allowed_types = std::move(allowed_types)](OpSchema& schema) {
-    schema.SetDoc(TopK_ver11_doc)
-        .Input(
-            0,
-            "X",
-            "Tensor of shape [a_0, a_1, ..., a_{n-1}]",
-            "T",
-            OpSchema::Single,
-            true,
-            1,
-            OpSchema::Differentiable)
-        .Input(
-            1,
-            "K",
-            "A 1-D tensor containing a single positive value corresponding to the number of top elements to retrieve",
-            "tensor(int64)",
-            OpSchema::Single,
-            true,
-            1,
-            OpSchema::NonDifferentiable)
-        .Output(
-            0,
-            "Values",
-            "Tensor of shape [a_0, a_1, ..., a_{axis-1}, k, a_{axis+1}, ... a_{n-1}] "
-            "containing top K values from the input tensor",
-            "T",
-            OpSchema::Single,
-            true,
-            1,
-            OpSchema::Differentiable)
-        .Output(
-            1,
-            "Indices",
-            "Tensor of shape [a_0, a_1, ..., a_{axis-1}, k, a_{axis+1}, ... a_{n-1}] "
-            "containing the corresponding input tensor indices for the top K "
-            "values.",
-            "I",
-            OpSchema::Single,
-            true,
-            1,
-            OpSchema::NonDifferentiable)
-        .TypeConstraint("T", allowed_types, "Constrain input and output types to numeric tensors.")
-        .TypeConstraint("I", {types::Int64}, "Constrain index tensor to int64")
-        .Attr(
-            "axis",
-            "Dimension on which to do the sort. Negative value means counting dimensions "
-            "from the back. Accepted range is [-r, r-1] where r = rank(input).",
-            AttributeProto::INT,
-            static_cast<int64_t>(-1))
-        .Attr(
-            "largest",
-            "Whether to return the top-K largest or smallest elements.",
-            AttributeProto::INT,
-            static_cast<int64_t>(1))
-        .Attr("sorted", "Whether to return the elements in sorted order.", AttributeProto::INT, static_cast<int64_t>(1))
-        .TypeAndShapeInferenceFunction(topKShapeInference);
-  };
-}
-
-std::function<void(OpSchema&)>
-UnaryFloatMathOpGenerator(const char* doc, const char* output_description, std::vector<std::string> allowed_types) {
-  return [doc, output_description, allowed_types = std::move(allowed_types)](OpSchema& schema) {
-    schema.SetDoc(doc)
-        .Input(0, "input", "Input tensor", "T", OpSchema::Single, true, 1, OpSchema::Differentiable)
-        .Output(0, "output", output_description, "T", OpSchema::Single, true, 1, OpSchema::Differentiable)
-        .TypeConstraint("T", allowed_types, "Constrain input and output types to float tensors.")
-        .TypeAndShapeInferenceFunction(propagateShapeAndTypeFromFirstInput);
-  };
-}
-
 int MathOpTwoIntegers(const std::string& op_type, int a, int b) {
   if (op_type == "Add") {
     return a + b;

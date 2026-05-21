@@ -17,22 +17,6 @@ namespace sequence {
 namespace utils {
 
 // Common documentation for SplitToSequence operator, versions 11 and 24
-static constexpr const char* SplitToSequence_ver11_doc =
-    R"DOC(
-Split a tensor into a sequence of tensors, along the specified 'axis'.
-Lengths of the parts can be specified using the optional argument 'split'.
-If the argument `split' is not specified, a default scalar value of 1
-is used as the value of `split'.
-'split' must contain only positive numbers.
-'split' is either a scalar (tensor of empty shape), or a 1-D tensor.
-If 'split' is a scalar, then 'input' will be split into chunks all of size 'split'
-if possible. The last chunk alone may be smaller than 'split' if the 'input' size
-along the given axis 'axis' is not divisible by 'split'.
-If 'split' is a 1-dimensional tensor, the input tensor is split into 'size(split)' chunks,
-with lengths of the parts on 'axis' specified in 'split'. In this scenario, the sum of entries
-in 'split' must be equal to the dimension size of input tensor on 'axis'.
-)DOC";
-
 void splitToSequenceShapeInference(InferenceContext& ctx) {
   const auto* const input0_type = ctx.getInputType(0);
   if (nullptr == input0_type) {
@@ -150,40 +134,6 @@ void splitToSequenceShapeInference(InferenceContext& ctx) {
     }
   }
 }
-
-std::function<void(OpSchema&)> SplitToSequenceOpGenerator(
-    std::vector<std::string> input_types,
-    std::vector<std::string> output_types) {
-  return [input_types = std::move(input_types), output_types = std::move(output_types)](OpSchema& schema) {
-    schema.Input(0, "input", "The tensor to split", "T")
-        .Input(
-            1,
-            "split",
-            "Length of each output. "
-            "It can be either a scalar(tensor of empty shape), or a 1-D tensor. All values must be >= 0. ",
-            "I",
-            OpSchema::Optional)
-        .Output(0, "output_sequence", "One or more outputs forming a sequence of tensors after splitting", "S")
-        .TypeConstraint("T", input_types, "Constrain input types to all tensor types.")
-        .TypeConstraint("I", {types::Int32, types::Int64}, "Constrain split size to integral tensor.")
-        .TypeConstraint("S", output_types, "Constrain output types to all tensor types.")
-        .Attr(
-            "axis",
-            "Which axis to split on. "
-            "A negative value means counting dimensions from the back. Accepted range is [-rank, rank-1].",
-            AttributeProto::INT,
-            static_cast<int64_t>(0))
-        .Attr(
-            "keepdims",
-            "Keep the split dimension or not. Default 1, which means we keep split dimension. "
-            "If input 'split' is specified, this attribute is ignored.",
-            AttributeProto::INT,
-            static_cast<int64_t>(1))
-        .SetDoc(SplitToSequence_ver11_doc)
-        .TypeAndShapeInferenceFunction(splitToSequenceShapeInference);
-  };
-}
-
 } // namespace utils
 } // namespace sequence
 } // namespace defs

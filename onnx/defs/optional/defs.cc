@@ -10,20 +10,6 @@
 #include "onnx/defs/type_builders.h"
 
 namespace ONNX_NAMESPACE {
-static std::vector<std::string> optional_and_tensor_types() {
-  auto optional_types = OpSchema::all_optional_types();
-  auto tensor_types = OpSchema::all_tensor_types();
-  auto sequence_types = OpSchema::all_tensor_sequence_types();
-  optional_types.insert(optional_types.end(), tensor_types.begin(), tensor_types.end());
-  optional_types.insert(optional_types.end(), sequence_types.begin(), sequence_types.end());
-  return optional_types;
-}
-
-static constexpr const char* Optional_ver15_doc = R"DOC(
-Constructs an optional-type value containing either an empty optional of a certain type specified by the attribute,
-or a non-empty value containing the input element.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     Optional,
     15,
@@ -52,13 +38,6 @@ ONNX_OPERATOR_SET_SCHEMA(
         fail_type_inference("Optional is expected to have either an input or the type attribute set.");
       }
     }));
-
-static constexpr const char* OptionalHasElement_ver18_doc = R"DOC(
-Returns true if (1) the input is an optional-type and contains an element,
-or, (2) the input is a tensor or sequence type.
-If the input is not provided or is an empty optional-type, this op returns false.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     OptionalHasElement,
     18,
@@ -75,13 +54,6 @@ ONNX_OPERATOR_SET_SCHEMA(
       output_tensor_type->set_elem_type(TensorProto::BOOL);
       output_tensor_type->mutable_shape()->Clear();
     }));
-
-static constexpr const char* OptionalGetElement_ver18_doc = R"DOC(
-If the input is a tensor or sequence type, it returns the input.
-If the input is an optional type, it outputs the element in the input.
-It is an error if the input is an empty optional-type (i.e. does not have an element) and the behavior is undefined in this case.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     OptionalGetElement,
     18,

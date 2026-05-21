@@ -164,9 +164,6 @@ ONNX_OPERATOR_SET_SCHEMA(
     Constant,
     12,
     OpSchema().FillUsing(Constant_v12_FillSpec).TypeAndShapeInferenceFunction(ConstantOpInference));
-
-static constexpr const char* Constant_ver1_doc = R"DOC(A constant tensor.)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     Constant,
     1,
@@ -180,9 +177,6 @@ ONNX_OPERATOR_SET_SCHEMA(
       updateOutputElemType(ctx, 0, tensor_proto.data_type());
       updateOutputShape(ctx, 0, tensor_proto);
     }));
-
-static const char* const Constant_ver9_doc = Constant_ver1_doc;
-
 ONNX_OPERATOR_SET_SCHEMA(
     Constant,
     9,
@@ -194,12 +188,6 @@ ONNX_OPERATOR_SET_SCHEMA(
       updateOutputElemType(ctx, 0, tensor_proto.data_type());
       updateOutputShape(ctx, 0, tensor_proto);
     }));
-
-static constexpr const char* Constant_ver11_doc = R"DOC(
-A constant tensor. Exactly one of the two attributes, either value or sparse_value,
-must be specified.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     Constant,
     11,

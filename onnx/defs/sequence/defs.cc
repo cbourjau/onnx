@@ -14,11 +14,6 @@
 #include "onnx/defs/type_builders.h"
 
 namespace ONNX_NAMESPACE {
-
-static constexpr const char* SequenceEmpty_ver11_doc = R"DOC(
-Construct an empty tensor sequence, with given data type.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     SequenceEmpty,
     11,
@@ -35,12 +30,6 @@ ONNX_OPERATOR_SET_SCHEMA(
       ctx.getOutputType(0)->mutable_sequence_type()->mutable_elem_type()->mutable_tensor_type()->set_elem_type(
           elem_type);
     }));
-
-static constexpr const char* SequenceConstruct_ver11_doc = R"DOC(
-Construct a tensor sequence containing 'inputs' tensors.
-All tensors in 'inputs' must have the same data type.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     SequenceConstruct,
     11,
@@ -81,15 +70,6 @@ ONNX_OPERATOR_SET_SCHEMA(
         UnionShapeInfo(input_shape, *output_tensor_type);
       }
     }));
-
-static constexpr const char* SequenceInsert_ver11_doc = R"DOC(
-Outputs a tensor sequence that inserts 'tensor' into 'input_sequence' at 'position'.
-'tensor' must have the same data type as 'input_sequence'.
-Accepted range for 'position' is in `[-n, n]`, where `n` is the number of tensors in 'input_sequence'.
-Negative value means counting positions from the back.
-'position' is optional, by default it inserts 'tensor' to the back of 'input_sequence'.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     SequenceInsert,
     11,
@@ -121,13 +101,6 @@ ONNX_OPERATOR_SET_SCHEMA(
 
       UnionShapeInfo(input1_type->tensor_type().shape(), *output_tensor_type);
     }));
-
-static constexpr const char* SequenceAt_ver11_doc = R"DOC(
-Outputs a tensor copy from the tensor at 'position' in 'input_sequence'.
-Accepted range for 'position' is in `[-n, n - 1]`, where `n` is the number of tensors in 'input_sequence'.
-Negative value means counting positions from the back.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     SequenceAt,
     11,
@@ -138,14 +111,6 @@ ONNX_OPERATOR_SET_SCHEMA(
       }
       ctx.getOutputType(0)->CopyFrom(input0_type->sequence_type().elem_type());
     }));
-
-static constexpr const char* SequenceErase_ver11_doc = R"DOC(
-Outputs a tensor sequence that removes the tensor at 'position' from 'input_sequence'.
-Accepted range for 'position' is in `[-n, n - 1]`, where `n` is the number of tensors in 'input_sequence'.
-Negative value means counting positions from the back.
-'position' is optional, by default it erases the last tensor from 'input_sequence'.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     SequenceErase,
     11,
@@ -156,11 +121,6 @@ ONNX_OPERATOR_SET_SCHEMA(
       }
       ctx.getOutputType(0)->CopyFrom(*input0_type);
     }));
-
-static constexpr const char* SequenceLength_ver11_doc = R"DOC(
-Produces a scalar(tensor of empty shape) containing the number of tensors in 'input_sequence'.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     SequenceLength,
     11,
@@ -178,14 +138,6 @@ ONNX_OPERATOR_SET_SCHEMA(
     OpSchema()
         .FillUsing(SplitToSequence_v24_FillSpec)
         .TypeAndShapeInferenceFunction(defs::sequence::utils::splitToSequenceShapeInference));
-
-static constexpr const char* ConcatFromSequence_ver11_doc = R"DOC(
-Concatenate a sequence of tensors into a single tensor.
-All input tensors must have the same shape, except for the dimension size of the axis to concatenate on.
-By default 'new_axis' is 0, the behavior is similar to numpy.concatenate.
-When 'new_axis' is 1, the behavior is similar to numpy.stack.
-)DOC";
-
 ONNX_OPERATOR_SET_SCHEMA(
     ConcatFromSequence,
     11,
@@ -240,23 +192,6 @@ ONNX_OPERATOR_SET_SCHEMA(
         }
       }
     }));
-
-static constexpr const char* SequenceMap_ver17_doc = R"DOC(
-Applies a sub-graph to each sample in the input sequence(s).
-
-Inputs can be either tensors or sequences, with the exception of the first input which must
-be a sequence. The length of the first input sequence will determine the number of samples in the
-outputs. Any other sequence inputs should have the same number of samples. The number of inputs
-and outputs, should match the one of the subgraph.
-
-For each i-th element in the output, a sample will be extracted from the input sequence(s) at
-the i-th position and the sub-graph will be applied to it.
-The outputs will contain the outputs of the sub-graph for each sample, in the same order as in
-the input.
-
-This operator assumes that processing each sample is independent and could executed in parallel
-or in any order. Users cannot expect any specific ordering in which each subgraph is computed.)DOC";
-
 static void SequenceMapInferenceFunction(InferenceContext& ctx) {
   auto num_inputs = ctx.getNumInputs();
   assert(num_inputs > 0);

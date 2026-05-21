@@ -142,52 +142,6 @@ static void argReduceShapeInference(InferenceContext& ctx) {
     }
   }
 }
-
-static std::function<void(OpSchema&)> ArgReduceDocGenerator(const char* name) {
-  return [=](OpSchema& schema) {
-    std::string doc;
-    POPULATE_OP_DOC_STR(
-        doc = R"DOC(
-Computes the indices of the {name} elements of the input tensor's element along the
-provided axis. The resulting tensor has the same rank as the input if keepdims equals 1.
-If keepdims equals 0, then the resulting tensor has the reduced dimension pruned.
-If select_last_index is True (default False), the index of the last occurrence of the {name}
-is selected if the {name} appears more than once in the input. Otherwise the index of the
-first occurrence is selected.
-The type of the output tensor is integer.)DOC";
-        ReplaceAll(doc, "{name}", name););
-    schema.SetDoc(doc.c_str());
-    schema.Attr(
-        "axis",
-        "The axis in which to compute the arg indices. Accepted range is [-r, r-1] where r = rank(data).",
-        AttributeProto::INT,
-        static_cast<int64_t>(0));
-    schema.Attr(
-        "keepdims",
-        "Keep the reduced dimension or not, default 1 means keep reduced dimension.",
-        AttributeProto::INT,
-        static_cast<int64_t>(1));
-    schema.Attr(
-        "select_last_index",
-        "Whether to select the last index or the first index if the {name} appears in multiple indices, default is False (first index).",
-        AttributeProto::INT,
-        static_cast<int64_t>(0));
-    schema.Input(0, "data", "An input tensor.", "T", OpSchema::Single, true, 1, OpSchema::NonDifferentiable);
-    schema.Output(
-        0,
-        "reduced",
-        "Reduced output tensor with integer data type.",
-        "tensor(int64)",
-        OpSchema::Single,
-        true,
-        1,
-        OpSchema::NonDifferentiable);
-    schema.TypeConstraint(
-        "T", OpSchema::all_numeric_types_ir4(), "Constrain input and output types to all numeric tensors.");
-    schema.TypeAndShapeInferenceFunction(argReduceShapeInference);
-  };
-}
-
 ONNX_OPERATOR_SET_SCHEMA(
     ArgMax,
     13,

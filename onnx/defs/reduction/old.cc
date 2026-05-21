@@ -12,19 +12,6 @@
 #include "onnx/defs/schema.h"
 
 namespace ONNX_NAMESPACE {
-
-static std::vector<std::string> GetSupportedDataTypesForReductionOps_opset12(bool supports8bit) {
-  if (supports8bit) {
-    auto data_types = OpSchema::numeric_types_for_math_reduction();
-    data_types.emplace_back("tensor(uint8)");
-    data_types.emplace_back("tensor(int8)");
-
-    return data_types;
-  }
-
-  return OpSchema::numeric_types_for_math_reduction();
-}
-
 static void reduceShapeInference_opset12(InferenceContext& ctx) {
   propagateElemTypeFromInputToOutput(ctx, 0, 0);
   if (!hasNInputShapes(ctx, 1)) {
@@ -64,44 +51,6 @@ static void reduceShapeInference_opset12(InferenceContext& ctx) {
     }
   }
 }
-
-static std::function<void(OpSchema&)> ReduceDocGenerator_opset12(
-    const char* name,
-    bool supports_8bit_datatypes = false) {
-  return [=](OpSchema& schema) {
-    std::string doc;
-    POPULATE_OP_DOC_STR(
-        doc = R"DOC(
-Computes the {name} of the input tensor's element along the provided axes. The resulting
-tensor has the same rank as the input if keepdims equals 1. If keepdims equal 0, then
-the resulted tensor have the reduced dimension pruned.
-
-The above behavior is similar to numpy, with the exception that numpy defaults keepdims to
-False instead of True.)DOC";
-        ReplaceAll(doc, "{name}", name););
-    schema.SetDoc(doc.c_str());
-    schema.Attr(
-        "axes",
-        "A list of integers, along which to reduce. The default is to reduce over "
-        "all the dimensions of the input tensor. Accepted range is [-r, r-1] where r = rank(data).",
-        AttributeProto::INTS,
-        OPTIONAL_VALUE);
-    schema.Attr(
-        "keepdims",
-        "Keep the reduced dimension or not, default 1 means keep reduced dimension.",
-        AttributeProto::INT,
-        static_cast<int64_t>(1));
-    schema.Input(0, "data", "An input tensor.", "T");
-    schema.Output(0, "reduced", "Reduced output tensor.", "T");
-    schema.TypeConstraint(
-        "T",
-        GetSupportedDataTypesForReductionOps_opset12(supports_8bit_datatypes),
-        supports_8bit_datatypes ? "Constrain input and output types to high-precision and 8 bit numeric tensors."
-                                : "Constrain input and output types to high-precision numeric tensors.");
-    schema.TypeAndShapeInferenceFunction(reduceShapeInference_opset12);
-  };
-}
-
 ONNX_OPERATOR_SET_SCHEMA(
     ReduceMax,
     12,
@@ -192,43 +141,7 @@ static void argReduceShapeInference_opset12(InferenceContext& ctx) {
     }
   }
 }
-
-static std::function<void(OpSchema&)> ArgReduceDocGenerator_opset12(const char* name) {
-  return [=](OpSchema& schema) {
-    std::string doc;
-    POPULATE_OP_DOC_STR(
-        doc = R"DOC(
-Computes the indices of the {name} elements of the input tensor's element along the
-provided axis. The resulting tensor has the same rank as the input if keepdims equals 1.
-If keepdims equal 0, then the resulting tensor has the reduced dimension pruned.
-If select_last_index is True (default False), the index of the last occurrence of the {name}
-is selected if the {name} appears more than once in the input. Otherwise the index of the
-first occurrence is selected.
-The type of the output tensor is integer.)DOC";
-        ReplaceAll(doc, "{name}", name););
-    schema.SetDoc(doc.c_str());
-    schema.Attr(
-        "axis",
-        "The axis in which to compute the arg indices. Accepted range is [-r, r-1] where r = rank(data).",
-        AttributeProto::INT,
-        static_cast<int64_t>(0));
-    schema.Attr(
-        "keepdims",
-        "Keep the reduced dimension or not, default 1 means keep reduced dimension.",
-        AttributeProto::INT,
-        static_cast<int64_t>(1));
-    schema.Attr(
-        "select_last_index",
-        "Whether to select the last index or the first index if the {name} appears in multiple indices, default is False (first index).",
-        AttributeProto::INT,
-        static_cast<int64_t>(0));
-    schema.Input(0, "data", "An input tensor.", "T");
-    schema.Output(0, "reduced", "Reduced output tensor with integer data type.", "tensor(int64)");
-    schema.TypeConstraint(
-        "T", OpSchema::all_numeric_types(), "Constrain input and output types to all numeric tensors.");
-    schema.TypeAndShapeInferenceFunction(argReduceShapeInference_opset12);
-  };
-} // namespace ONNX_NAMESPACE
+// namespace ONNX_NAMESPACE
 
 ONNX_OPERATOR_SET_SCHEMA(
     ArgMax,
@@ -276,46 +189,6 @@ static void reduceShapeInference_opset1(InferenceContext& ctx) {
     }
   }
 }
-
-static std::function<void(OpSchema&)>
-ReduceDocGenerator_opset1(const char* name, const char* empty_value, int opset = 1) {
-  return [=](OpSchema& schema) {
-    std::string doc;
-    POPULATE_OP_DOC_STR(
-        doc = R"DOC(
-Computes the {name} of the input tensor's element along the provided axes. The resulting
-tensor has the same rank as the input if keepdims equals 1. If keepdims equal 0, then
-the resulted tensor have the reduced dimension pruned. Input tensors of rank zero are
-valid. Reduction over an empty set of values yields {empty_value}.
-
-The above behavior is similar to numpy, with the exception that numpy defaults keepdims to
-False instead of True.)DOC";
-        ReplaceAll(doc, "{name}", name););
-    ReplaceAll(doc, "{empty_value}", empty_value);
-    schema.SetDoc(doc.c_str());
-    schema.Attr(
-        "axes",
-        opset >= 11 ? "A list of integers, along which to reduce. The default is to reduce over "
-                      "all the dimensions of the input tensor. Accepted range is [-r, r-1] where r = rank(data)."
-                    : "A list of integers, along which to reduce. The default is to reduce over "
-                      "all the dimensions of the input tensor.",
-        AttributeProto::INTS,
-        OPTIONAL_VALUE);
-    schema.Attr(
-        "keepdims",
-        "Keep the reduced dimension or not, default 1 means keep reduced dimension.",
-        AttributeProto::INT,
-        static_cast<int64_t>(1));
-    schema.Input(0, "data", "An input tensor.", "T");
-    schema.Output(0, "reduced", "Reduced output tensor.", "T");
-    schema.TypeConstraint(
-        "T",
-        OpSchema::numeric_types_for_math_reduction(),
-        "Constrain input and output types to high-precision numeric tensors.");
-    schema.TypeAndShapeInferenceFunction(reduceShapeInference_opset1);
-  };
-}
-
 ONNX_OPERATOR_SET_SCHEMA(
     ReduceMax,
     1,
@@ -413,31 +286,7 @@ static void argReduceShapeInference_opset1(InferenceContext& ctx) {
     }
   }
 }
-
-static std::function<void(OpSchema&)> ArgReduceDocGenerator_opset1(const char* name) {
-  return [=](OpSchema& schema) {
-    std::string doc;
-    POPULATE_OP_DOC_STR(
-        doc = R"DOC(
-Computes the indices of the {name} elements of the input tensor's element along the
-provided axis. The resulting tensor has the same rank as the input if keepdims equals 1.
-If keepdims equal 0, then the resulted tensor have the reduced dimension pruned.
-The type of the output tensor is integer.)DOC";
-        ReplaceAll(doc, "{name}", name););
-    schema.SetDoc(doc.c_str());
-    schema.Attr("axis", "The axis in which to compute the arg indices.", AttributeProto::INT, static_cast<int64_t>(0));
-    schema.Attr(
-        "keepdims",
-        "Keep the reduced dimension or not, default 1 means keep reduced dimension.",
-        AttributeProto::INT,
-        static_cast<int64_t>(1));
-    schema.Input(0, "data", "An input tensor.", "T");
-    schema.Output(0, "reduced", "Reduced output tensor with integer data type.", "tensor(int64)");
-    schema.TypeConstraint(
-        "T", OpSchema::all_numeric_types(), "Constrain input and output types to all numeric tensors.");
-    schema.TypeAndShapeInferenceFunction(argReduceShapeInference_opset1);
-  };
-} // namespace ONNX_NAMESPACE
+// namespace ONNX_NAMESPACE
 
 ONNX_OPERATOR_SET_SCHEMA(
     ArgMax,
@@ -448,34 +297,7 @@ ONNX_OPERATOR_SET_SCHEMA(
     ArgMin,
     1,
     OpSchema().FillUsing(ArgMin_v1_FillSpec).TypeAndShapeInferenceFunction(argReduceShapeInference_opset1));
-
-static std::function<void(OpSchema&)> ArgReduceDocGenerator_opset11(const char* name) {
-  return [=](OpSchema& schema) {
-    std::string doc = R"DOC(
-Computes the indices of the {name} elements of the input tensor's element along the
-provided axis. The resulting tensor has the same rank as the input if keepdims equals 1.
-If keepdims equal 0, then the resulting tensor has the reduced dimension pruned.
-The input tensor must not be empty.
-The type of the output tensor is integer.)DOC";
-    ReplaceAll(doc, "{name}", name);
-    schema.SetDoc(doc.c_str());
-    schema.Attr(
-        "axis",
-        "The axis in which to compute the arg indices. Accepted range is [-r, r-1] where r = rank(data).",
-        AttributeProto::INT,
-        static_cast<int64_t>(0));
-    schema.Attr(
-        "keepdims",
-        "Keep the reduced dimension or not, default 1 means keep reduced dimension.",
-        AttributeProto::INT,
-        static_cast<int64_t>(1));
-    schema.Input(0, "data", "An input tensor.", "T");
-    schema.Output(0, "reduced", "Reduced output tensor with integer data type.", "tensor(int64)");
-    schema.TypeConstraint(
-        "T", OpSchema::all_numeric_types(), "Constrain input and output types to all numeric tensors.");
-    schema.TypeAndShapeInferenceFunction(argReduceShapeInference_opset12);
-  };
-} // namespace ONNX_NAMESPACE
+// namespace ONNX_NAMESPACE
 
 ONNX_OPERATOR_SET_SCHEMA(
     ArgMax,
