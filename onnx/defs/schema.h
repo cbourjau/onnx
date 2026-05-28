@@ -764,6 +764,10 @@ class OpSchema final {
 
   ONNX_API OpSchema& FunctionBody(const char* func_body, int opset_version = kUninitializedSinceVersion);
 
+  // Parse a full function proto text (including header with opset_import) and register it.
+  // The opset_import in the parsed proto is updated to match since_version_.
+  ONNX_API OpSchema& Function(const char* full_function_text);
+
   // since_version_ of an OpSchema tells the last opset version when an op is defined.
   // When the op's definition is changed, a new OpSchema (of the same op_type) is created
   // with a newer since_version_, reflecting the opset version at the time of change.

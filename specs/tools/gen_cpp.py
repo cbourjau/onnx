@@ -228,6 +228,10 @@ class CppSpec:
     def type_constraints(self) -> list[CppTypeConstraint]:
         return [CppTypeConstraint(tc) for tc in self._spec.type_constraints]
 
+    @property
+    def function_body(self) -> str | None:
+        return self._spec.function_body
+
 
 def _load_env() -> jinja2.Environment:
     return jinja2.Environment(  # noqa: S701

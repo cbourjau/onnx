@@ -18,6 +18,7 @@
 #include "onnx/defs/operator_sets.h"
 #include "onnx/defs/operator_sets_preview.h"
 #include "onnx/defs/operator_sets_training.h"
+#include "onnx/defs/parser.h"
 #include "onnx/defs/type_builders.h"
 
 #ifdef ONNX_ML
@@ -824,6 +825,21 @@ OpSchema& OpSchema::FunctionBody(const char* func_body, int opset_version) {
   UpdateFunctionProtoOpsetImportVersion(*function_proto, opset_version);
 
   opset_version_to_function_body_.emplace(opset_version, function_proto);
+  return *this;
+}
+
+OpSchema& OpSchema::Function(const char* full_function_text) {
+  auto function_proto = std::make_shared<FunctionProto>();
+  OnnxParser parser(full_function_text);
+  auto status = parser.Parse(*function_proto);
+  if (!status.IsOK())
+    ONNX_THROW_EX(std::logic_error("Error parsing function: " + status.ErrorMessage()));
+  if (!parser.EndOfInput())
+    ONNX_THROW_EX(std::logic_error("Extra unparsed input unexpected."));
+
+  int opset_version = since_version_;
+  UpdateFunctionProtoOpsetImportVersion(*function_proto, opset_version);
+  opset_version_to_function_body_.emplace(opset_version, std::move(function_proto));
   return *this;
 }
 

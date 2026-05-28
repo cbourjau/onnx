@@ -52,6 +52,9 @@ void {{ spec.func_name }}(OpSchema& schema) {
           {{ tc.allowed }},
           "{{ tc.doc }}")
 {% endfor %}
+{% if spec.function_body %}
+      .Function(R"ONNX({{ spec.function_body }})ONNX")
+{% endif %}
       ;
 }
 {% endfor %}
