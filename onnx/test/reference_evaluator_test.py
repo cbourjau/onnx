@@ -6526,23 +6526,75 @@ class TestReferenceEvaluator:
         graph = make_graph([node], "searchsorted", graph_inputs, [out])
         return make_model(graph, opset_imports=[make_opsetid("", 28)])
 
-    @pytest.mark.parametrize("side", ["left", "right"])
-    def test_searchsorted(self, side: str) -> None:
+    @pytest.mark.parametrize(
+        ("x1", "x2", "side", "expected"),
+        [
+            # Basic insertion among finite values; side controls whether an exact
+            # match returns the index of the equal element (left) or past it (right).
+            ([1, 3, 5, 7], [0, 3, 5, 8], "left", [0, 1, 2, 4]),
+            ([1, 3, 5, 7], [0, 3, 5, 8], "right", [0, 2, 3, 4]),
+            # NaN is placed last in the sorted x1 and compares as greater than every
+            # finite value (NumPy comparison order, not IEEE-754 total ordering). A
+            # finite value inserts among the finite elements, while a NaN value lands
+            # at the NaN's position (left) or just past it (right).
+            ([1, 2, 3, np.nan], [2.5, np.nan], "left", [2, 3]),
+            ([1, 2, 3, np.nan], [2.5, np.nan], "right", [2, 4]),
+            # Signed zeros compare as equal (-0.0 == +0.0), so both search values map
+            # to the same insertion point: before the run of zeros (left) or after it
+            # (right). The sign of zero does not affect the result.
+            ([-1, -0.0, 0.0, 1], [-0.0, 0.0], "left", [1, 1]),
+            ([-1, -0.0, 0.0, 1], [-0.0, 0.0], "right", [3, 3]),
+        ],
+    )
+    def test_searchsorted(self, x1, x2, side, expected) -> None:
         ref = ReferenceEvaluator(self._searchsorted_model(with_sorter=False, side=side))
-        x1 = np.array([1, 3, 5, 7], dtype=np.float32)
-        x2 = np.array([0, 3, 5, 8], dtype=np.float32)
-        expected = np.searchsorted(x1, x2, side=side).astype(np.int64)
-        (got,) = ref.run(None, {"x1": x1, "x2": x2})
-        assert_allclose(got, expected)
+        (got,) = ref.run(
+            None,
+            {
+                "x1": np.array(x1, dtype=np.float32),
+                "x2": np.array(x2, dtype=np.float32),
+            },
+        )
+        assert_allclose(got, np.array(expected, dtype=np.int64))
         assert got.dtype == np.int64
 
     def test_searchsorted_sorter(self) -> None:
         ref = ReferenceEvaluator(
             self._searchsorted_model(with_sorter=True, side="left")
         )
+        # x1 is unsorted; sorter provides the indices that sort it ascending.
         x1 = np.array([5, 1, 7, 3], dtype=np.float32)
         sorter = np.argsort(x1).astype(np.int64)
         x2 = np.array([0, 3, 8], dtype=np.float32)
-        expected = np.searchsorted(x1, x2, side="left", sorter=sorter).astype(np.int64)
         (got,) = ref.run(None, {"x1": x1, "x2": x2, "sorter": sorter})
-        assert_allclose(got, expected)
+        assert_allclose(got, np.array([0, 1, 4], dtype=np.int64))
+
+    def test_searchsorted_consistent_with_unique(self) -> None:
+        # Unique (sorted) returns the unique values Y in ascending order together
+        # with inverse_indices mapping every element of x to its position in Y.
+        # Since every element of x appears in Y, searching x against Y with
+        # side="left" must reproduce inverse_indices exactly. This ties the sort
+        # order of Searchsorted to that of Unique.
+        x_info = make_tensor_value_info("x", TensorProto.FLOAT, [None])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [None])
+        indices = make_tensor_value_info("indices", TensorProto.INT64, [None])
+        inverse_indices = make_tensor_value_info(
+            "inverse_indices", TensorProto.INT64, [None]
+        )
+        out = make_tensor_value_info("out", TensorProto.INT64, [None])
+        unique_node = make_node(
+            "Unique", ["x"], ["y", "indices", "inverse_indices"], sorted=1
+        )
+        search_node = make_node("Searchsorted", ["y", "x"], ["out"], side="left")
+        graph = make_graph(
+            [unique_node, search_node],
+            "searchsorted_unique",
+            [x_info],
+            [out, inverse_indices, indices, y],
+        )
+        model = make_model(graph, opset_imports=[make_opsetid("", 28)])
+
+        ref = ReferenceEvaluator(model)
+        x = np.array([3, 1, 3, 5, 1, 7, 5], dtype=np.float32)
+        out_val, inverse_val, *_ = ref.run(None, {"x": x})
+        assert_allclose(out_val, inverse_val)
