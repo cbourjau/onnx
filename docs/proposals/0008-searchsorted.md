@@ -14,7 +14,7 @@ Copyright (c) ONNX Project Contributors
 
 This RFC proposes adding the `Searchsorted` operator to the ai.onnx domain.
 Given two tensors `x1` and `x2`, `Searchsorted` finds the indices into `x1` such that, if the corresponding elements in `x2` were inserted before the indices, the order of `x1`, when sorted in ascending order, would be preserved.
-This RFC proposes the addition of an operator that follows the semantics of `searchsorted` as defined in the [array-API][https://data-apis.org/array-api/draft/API_specification/generated/array_api.searchsorted.html#searchsorted] standard.
+The proposed semantics are identical to the `searchsorted` function defined in the [array-API][https://data-apis.org/array-api/draft/API_specification/generated/array_api.searchsorted.html#searchsorted].
 
 ## Motivation
 
@@ -42,7 +42,7 @@ Let `v` be an element of `x2` given by `v = x2[j]`.
 For real-valued floating-point tensors, the sort order of NaNs and signed zeros is unspecified and thus implementation-dependent.
 Accordingly, when a real-valued floating-point tensor contains NaNs and signed zeros, what constitutes ascending order may vary among specification-conforming implementations.
 
-While behavior for tensors containing NaNs and signed zeros is implementation-dependent, specification-conforming implementations should, however, ensure consistency with `Unique`  and other sorting operators.
+While behavior for tensors containing NaNs and signed zeros is implementation-dependent, specification-conforming implementations should, nonetheless, ensure consistency with `Unique`  and other sorting operators.
 
 
 ### Attributes
@@ -82,11 +82,12 @@ While not mandating the implementation details, it is advised that runtimes impl
 ### Interaction with other operators
 
 The searching logic of this operator should be consistent with other sorting operators of an implementation.
-Sorting of floating-point numbers must follow IEEE 754-2019 total-ordering predicate (wikipedia).
+Sorting of floating-point numbers must follow IEEE 754-2019 total-ordering predicate.
 
 ## Drawbacks
 
-This constitutes another operator to the standard, which needs to be tested, implemented, and maintained by downstream runtimes. However, the operator is fairly easy to implement, and there are only a few corner cases to test.
+This constitutes another operator to the standard, which needs to be tested, implemented, and maintained by downstream runtimes.
+However, the operator is fairly easy to implement, and there are only a few corner cases to test.
 
 ## Rationale and alternatives
 
@@ -100,7 +101,7 @@ However, this has several drawbacks:
   - This requires the `ai.onnx.ml` domain, which sees less support in runtimes.
   - The output of that operator is a floating-point value rather than the desired int64 indices.
 
-### `x1` and `x2` are very small
+### `x1` and `x2` are have very few elements
 
 If both tensors are quite small, one may opt for an implementation akin to the following array-api code:
 
@@ -137,7 +138,7 @@ This implementation has two drawbacks:
 
 ## Prior art
 
-The `searchsorted` operation is a very common in tensor libraries.
+The `searchsorted` operation is very common in tensor libraries.
 As such, prior art is not difficult to find:
 
   - [array-api](https://data-apis.org/array-api/draft/API_specification/generated/array_api.searchsorted.html#searchsorted)
