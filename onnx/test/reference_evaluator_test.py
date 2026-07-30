@@ -6510,3 +6510,39 @@ class TestReferenceEvaluator:
 
         assert_allclose(got_state, expected_state)
         assert_allclose(got_output, expected_output)
+
+    @staticmethod
+    def _searchsorted_model(with_sorter: bool, side: str) -> ModelProto:
+        x1 = make_tensor_value_info("x1", TensorProto.FLOAT, [None])
+        x2 = make_tensor_value_info("x2", TensorProto.FLOAT, [None])
+        out = make_tensor_value_info("out", TensorProto.INT64, [None])
+        inputs = ["x1", "x2"]
+        graph_inputs = [x1, x2]
+        if with_sorter:
+            sorter = make_tensor_value_info("sorter", TensorProto.INT64, [None])
+            inputs.append("sorter")
+            graph_inputs.append(sorter)
+        node = make_node("Searchsorted", inputs, ["out"], side=side)
+        graph = make_graph([node], "searchsorted", graph_inputs, [out])
+        return make_model(graph, opset_imports=[make_opsetid("", 28)])
+
+    @pytest.mark.parametrize("side", ["left", "right"])
+    def test_searchsorted(self, side: str) -> None:
+        ref = ReferenceEvaluator(self._searchsorted_model(with_sorter=False, side=side))
+        x1 = np.array([1, 3, 5, 7], dtype=np.float32)
+        x2 = np.array([0, 3, 5, 8], dtype=np.float32)
+        expected = np.searchsorted(x1, x2, side=side).astype(np.int64)
+        (got,) = ref.run(None, {"x1": x1, "x2": x2})
+        assert_allclose(got, expected)
+        assert got.dtype == np.int64
+
+    def test_searchsorted_sorter(self) -> None:
+        ref = ReferenceEvaluator(
+            self._searchsorted_model(with_sorter=True, side="left")
+        )
+        x1 = np.array([5, 1, 7, 3], dtype=np.float32)
+        sorter = np.argsort(x1).astype(np.int64)
+        x2 = np.array([0, 3, 8], dtype=np.float32)
+        expected = np.searchsorted(x1, x2, side="left", sorter=sorter).astype(np.int64)
+        (got,) = ref.run(None, {"x1": x1, "x2": x2, "sorter": sorter})
+        assert_allclose(got, expected)

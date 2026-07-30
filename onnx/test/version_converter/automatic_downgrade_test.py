@@ -128,3 +128,13 @@ class TestAutomaticDowngrade(automatic_conversion_test_base.TestAutomaticConvers
             }
         """,
         )
+
+    def test_Searchsorted(self) -> None:
+        self._test_op_downgrade(
+            "Searchsorted",
+            28,
+            [[4], [3]],
+            [[3]],
+            output_types=[onnx.TensorProto.INT64],
+            attrs={"side": "left"},
+        )

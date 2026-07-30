@@ -1272,6 +1272,85 @@ ONNX_OPERATOR_SET_SCHEMA(
     24,
     OpSchema().FillUsing(defs::math::utils::TopKOpGenerator(OpSchema::all_numeric_types_ir4())));
 
+static constexpr const char* Searchsorted_ver28_doc = R"DOC(
+Finds the indices into `x1` such that, if the corresponding elements in `x2` were inserted before the indices, the order of `x1`, when sorted in ascending order, would be preserved.
+
+Let `v` be an element of `x2` given by `v = x2[j]`.
+
+  - If `v` is less than all elements in `x1`, then `out[j]` must be `0`.
+  - If `v` is greater than all elements in `x1`, then `out[j]` must be `M`, where `M` is the number of elements in `x1`.
+  - Otherwise, each returned index `i = out[j]` must satisfy an index condition:
+
+    - If `side == 'left'`, then `x1[i-1] < v <= x1[i]`.
+    - If `side == 'right'`, then `x1[i-1] <= v < x1[i]`.
+
+**Notes**
+
+For real-valued floating-point tensors, the sort order of NaNs and signed zeros is unspecified and thus implementation-dependent.
+Accordingly, when a real-valued floating-point tensor contains NaNs and signed zeros, what constitutes ascending order may vary among specification-conforming implementations.
+
+While behavior for tensors containing NaNs and signed zeros is implementation-dependent, specification-conforming implementations should, nonetheless, ensure consistency with `Unique`  and other sorting operators.
+)DOC";
+
+static void SearchsortedShapeInference(InferenceContext& ctx) {
+  // The output is always int64, independent of the input element type.
+  updateOutputElemType(ctx, 0, TensorProto::INT64);
+  // x1 must be one-dimensional.
+  if (hasInputShape(ctx, 0)) {
+    const auto& x1_shape = getInputShape(ctx, 0);
+    if (x1_shape.dim_size() != 1) {
+      fail_shape_inference("Searchsorted: input 'x1' must be a 1-dimensional tensor.");
+    }
+  }
+  // The output has the same shape as x2.
+  if (hasInputShape(ctx, 1)) {
+    *ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape() = getInputShape(ctx, 1);
+  }
+}
+
+ONNX_OPERATOR_SET_SCHEMA(
+    Searchsorted,
+    28,
+    OpSchema()
+        .SetDoc(Searchsorted_ver28_doc)
+        .Attr(
+            "side",
+            "Either `\"left\"` or `\"right\"`. Controls which index is returned if a value lands exactly on an edge.",
+            AttributeProto::STRING,
+            std::string("left"))
+        .Input(
+            0,
+            "x1",
+            "Input tensor. Must be a one-dimensional. If `sorter` is not given, must be sorted in ascending order; otherwise, `sorter` must be a tensor of indices that sort `x1` in ascending order.",
+            "T",
+            OpSchema::Single,
+            true,
+            1,
+            OpSchema::NonDifferentiable)
+        .Input(1, "x2", "Tensor containing search values.", "T", OpSchema::Single, true, 1, OpSchema::NonDifferentiable)
+        .Input(
+            2,
+            "sorter",
+            "Tensor of indices that sort `x1` in ascending order. The tensor must have the same shape as `x1`.",
+            "Tind",
+            OpSchema::Optional,
+            true,
+            1,
+            OpSchema::NonDifferentiable)
+        .Output(
+            0,
+            "out",
+            "A tensor of indices with the same shape as `x2`.",
+            "Tind",
+            OpSchema::Single,
+            true,
+            1,
+            OpSchema::NonDifferentiable)
+        .TypeConstraint("T", OpSchema::all_numeric_types_ir4(), "Constrain input types to numeric tensors.")
+        .TypeConstraint("Tind", {types::Int64}, "Constrain indices to int64.")
+        .SetNodeDeterminism(OpSchema::NodeDeterminism::Deterministic)
+        .TypeAndShapeInferenceFunction(SearchsortedShapeInference));
+
 ONNX_OPERATOR_SET_SCHEMA(
     Sin,
     22,

@@ -197,6 +197,7 @@ __all__ = [
     "Scan",
     "ScatterElements",
     "ScatterND",
+    "Searchsorted",
     "Selu",
     "SequenceAt",
     "SequenceConstruct",
@@ -444,6 +445,7 @@ from onnx.reference.ops.op_round import Round
 from onnx.reference.ops.op_scan import Scan
 from onnx.reference.ops.op_scatter_elements import ScatterElements
 from onnx.reference.ops.op_scatternd import ScatterND
+from onnx.reference.ops.op_searchsorted import Searchsorted
 from onnx.reference.ops.op_selu import Selu
 from onnx.reference.ops.op_sequence_at import SequenceAt
 from onnx.reference.ops.op_sequence_construct import SequenceConstruct

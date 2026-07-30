@@ -6,7 +6,7 @@
 * [Overall Test Coverage](#overall-test-coverage)
 # Node Test Coverage
 ## Summary
-Node tests have covered 189/201 (94.03%, 5 generators excluded) common operators.
+Node tests have covered 190/202 (94.06%, 5 generators excluded) common operators.
 
 Node tests have covered 1/1 (100.00%, 0 generators excluded) experimental operators.
 
@@ -25543,6 +25543,130 @@ expect(
     inputs=[data, indices, updates],
     outputs=[output],
     name="test_scatternd_multiply",
+)
+```
+
+</details>
+
+
+### Searchsorted
+There are 5 test cases, listed as following:
+<details>
+<summary>searchsorted</summary>
+
+```python
+node = onnx.helper.make_node(
+    "Searchsorted",
+    inputs=["x1", "x2"],
+    outputs=["out"],
+)
+x1 = np.array([1, 3, 5, 7], dtype=np.float32)
+x2 = np.array([0, 3, 8], dtype=np.float32)
+out = np.searchsorted(x1, x2, side="left").astype(np.int64)
+# out == [0, 1, 4]
+
+expect(
+    node,
+    inputs=[x1, x2],
+    outputs=[out],
+    name="test_searchsorted",
+    opset_imports=_OPSET_IMPORTS,
+)
+```
+
+</details>
+<details>
+<summary>searchsorted_2d_values</summary>
+
+```python
+node = onnx.helper.make_node(
+    "Searchsorted",
+    inputs=["x1", "x2"],
+    outputs=["out"],
+)
+x1 = np.array([1, 3, 5, 7], dtype=np.float32)
+x2 = np.array([[0, 3], [4, 8]], dtype=np.float32)
+out = np.searchsorted(x1, x2, side="left").astype(np.int64)
+
+expect(
+    node,
+    inputs=[x1, x2],
+    outputs=[out],
+    name="test_searchsorted_2d_values",
+    opset_imports=_OPSET_IMPORTS,
+)
+```
+
+</details>
+<details>
+<summary>searchsorted_int64</summary>
+
+```python
+node = onnx.helper.make_node(
+    "Searchsorted",
+    inputs=["x1", "x2"],
+    outputs=["out"],
+)
+x1 = np.array([1, 3, 5, 7], dtype=np.int64)
+x2 = np.array([0, 3, 8], dtype=np.int64)
+out = np.searchsorted(x1, x2, side="left").astype(np.int64)
+
+expect(
+    node,
+    inputs=[x1, x2],
+    outputs=[out],
+    name="test_searchsorted_int64",
+    opset_imports=_OPSET_IMPORTS,
+)
+```
+
+</details>
+<details>
+<summary>searchsorted_right</summary>
+
+```python
+node = onnx.helper.make_node(
+    "Searchsorted",
+    inputs=["x1", "x2"],
+    outputs=["out"],
+    side="right",
+)
+x1 = np.array([1, 3, 5, 7], dtype=np.float32)
+x2 = np.array([0, 3, 8], dtype=np.float32)
+out = np.searchsorted(x1, x2, side="right").astype(np.int64)
+# out == [0, 2, 4]
+
+expect(
+    node,
+    inputs=[x1, x2],
+    outputs=[out],
+    name="test_searchsorted_right",
+    opset_imports=_OPSET_IMPORTS,
+)
+```
+
+</details>
+<details>
+<summary>searchsorted_sorter</summary>
+
+```python
+node = onnx.helper.make_node(
+    "Searchsorted",
+    inputs=["x1", "x2", "sorter"],
+    outputs=["out"],
+)
+# x1 is unsorted; sorter contains the indices that sort it ascending.
+x1 = np.array([5, 1, 7, 3], dtype=np.float32)
+sorter = np.argsort(x1).astype(np.int64)
+x2 = np.array([0, 3, 8], dtype=np.float32)
+out = np.searchsorted(x1, x2, side="left", sorter=sorter).astype(np.int64)
+
+expect(
+    node,
+    inputs=[x1, x2, sorter],
+    outputs=[out],
+    name="test_searchsorted_sorter",
+    opset_imports=_OPSET_IMPORTS,
 )
 ```
 

@@ -33093,6 +33093,79 @@ This version of the operator has been available since version 28 of the default 
 <dd>Constrain input and output types to float tensors.</dd>
 </dl>
 
+### <a name="Searchsorted-28"></a>**Searchsorted-28**</a>
+
+  Finds the indices into `x1` such that, if the corresponding elements in `x2` were
+  inserted before those indices, the order of `x1` (sorted in ascending order) would be
+  preserved. This matches the semantics of `searchsorted` in the Python array API and
+  `numpy.searchsorted`.
+
+  `x1` must be a one-dimensional tensor. If `sorter` is not provided, `x1` must already be
+  sorted in ascending order. If `sorter` is provided, it must contain the indices that sort
+  `x1` in ascending order (as produced by an argsort of `x1`), and `x1` is treated as if it
+  were indexed by `sorter`.
+
+  Let `v = x2[j]` be an element of `x2` and `M` the number of elements in `x1`:
+
+    - If `v` is less than all elements of `x1`, then `out[j] == 0`.
+    - If `v` is greater than all elements of `x1`, then `out[j] == M`.
+    - Otherwise, the returned index `i = out[j]` satisfies:
+      - if `side == "left"`:  `x1[i-1] < v <= x1[i]`;
+      - if `side == "right"`: `x1[i-1] <= v < x1[i]`.
+
+  The output has the same shape as `x2` and element type `int64`.
+
+  For real-valued floating-point tensors, the sort order of NaNs and signed zeros is
+  implementation-defined; implementations should stay consistent with their other sorting
+  operators.
+
+  Example (side = "left"):
+  ```
+  x1 = [1, 3, 5, 7]
+  x2 = [0, 3, 8]
+  out = [0, 1, 4]
+  ```
+  With side = "right", the value 3 that lands exactly on an existing element moves one step
+  to the right: `out = [0, 2, 4]`.
+
+#### Version
+
+This version of the operator has been available since version 28 of the default ONNX operator set.
+
+#### Attributes
+
+<dl>
+<dt><tt>side</tt> : string (default is left)</dt>
+<dd>Controls which index is returned when a search value lands exactly on an element of `x1`. Must be either "left" (default) or "right".</dd>
+</dl>
+
+#### Inputs (2 - 3)
+
+<dl>
+<dt><tt>x1</tt> (non-differentiable) : T</dt>
+<dd>Input tensor. Must be one-dimensional. If `sorter` is not provided, must be sorted in ascending order.</dd>
+<dt><tt>x2</tt> (non-differentiable) : T</dt>
+<dd>Tensor containing the search values. May have any shape.</dd>
+<dt><tt>sorter</tt> (optional, non-differentiable) : Tind</dt>
+<dd>Optional tensor of indices that sort `x1` in ascending order. Must have the same shape as `x1`.</dd>
+</dl>
+
+#### Outputs
+
+<dl>
+<dt><tt>out</tt> (non-differentiable) : Tind</dt>
+<dd>Tensor of insertion indices with the same shape as `x2`.</dd>
+</dl>
+
+#### Type Constraints
+
+<dl>
+<dt><tt>T</tt> : tensor(uint8), tensor(uint16), tensor(uint32), tensor(uint64), tensor(int8), tensor(int16), tensor(int32), tensor(int64), tensor(float16), tensor(float), tensor(double), tensor(bfloat16)</dt>
+<dd>Constrain input types to numeric tensors.</dd>
+<dt><tt>Tind</tt> : tensor(int64)</dt>
+<dd>Constrain indices to int64.</dd>
+</dl>
+
 # ai.onnx.preview
 ## Version 1 of the 'ai.onnx.preview' operator set
 ### <a name="ai.onnx.preview.FlexAttention-1"></a>**ai.onnx.preview.FlexAttention-1**</a>

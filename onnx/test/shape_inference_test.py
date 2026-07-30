@@ -4769,6 +4769,44 @@ class TestShapeInference(TestShapeInferenceHelper):
             ],
         )
 
+    @pytest.mark.parametrize(
+        "input_shapes",
+        [
+            # Different ranks for x2
+            [(4,), (3,)],
+            [(4,), (2, 5)],
+            # Symbolic dimensions in x2 are propagated to the output.
+            [(4,), ("N", 5)],
+            # The optional sorter input does not affect the output shape.
+            [(4,), (3,), (4,)],
+        ],
+    )
+    def test_searchsorted(self, input_shapes) -> None:
+        # x1 and x2 are float; the optional sorter, if present, is int64.
+        names = ("x1", "x2", "sorter")
+        dtypes = (TensorProto.FLOAT, TensorProto.FLOAT, TensorProto.INT64)
+        inputs = list(zip(names, dtypes, input_shapes, strict=False))
+        graph = self._make_graph(
+            inputs,
+            [make_node("Searchsorted", list(names[: len(input_shapes)]), ["out"])],
+            [],
+        )
+        # The output has the same shape as x2 (the second input).
+        self._assert_inferred(
+            graph, [make_tensor_value_info("out", TensorProto.INT64, input_shapes[1])]
+        )
+
+    def test_searchsorted_x1_not_1d_fails(self) -> None:
+        graph = self._make_graph(
+            [("x1", TensorProto.FLOAT, (4, 2)), ("x2", TensorProto.FLOAT, (3,))],
+            [make_node("Searchsorted", ["x1", "x2"], ["out"])],
+            [],
+        )
+        with pytest.raises(onnx.shape_inference.InferenceError):
+            self._assert_inferred(
+                graph, [make_tensor_value_info("out", TensorProto.INT64, (3,))]
+            )
+
     def test_gemm(self) -> None:
         graph = self._make_graph(
             [

@@ -1365,6 +1365,16 @@ class TestAutomaticUpgrade(automatic_conversion_test_base.TestAutomaticConversio
             attrs={"body": body, "num_scan_inputs": 1},
         )
 
+    def test_Searchsorted(self) -> None:
+        self._test_op_upgrade(
+            "Searchsorted",
+            28,
+            [[4], [3]],
+            [[3]],
+            output_types=[TensorProto.INT64],
+            attrs={"side": "left"},
+        )
+
     def test_Selu(self) -> None:
         self._test_op_upgrade("Selu", 1, attrs={"consumed_inputs": [0]})
 
