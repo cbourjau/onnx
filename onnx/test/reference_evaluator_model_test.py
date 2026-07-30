@@ -1,10 +1,8 @@
 # Copyright (c) ONNX Project Contributors
 
 # SPDX-License-Identifier: Apache-2.0
-# type: ignore
+# mypy: ignore-errors
 from __future__ import annotations
-
-import unittest
 
 import numpy as np
 
@@ -119,12 +117,8 @@ def create_model():
     return oh.make_model(graph, functions=functions, opset_imports=opset_imports)
 
 
-class TestReferenceEvaluatorModel(unittest.TestCase):
+class TestReferenceEvaluatorModel:
     def test_loop_fft(self):
         model = create_model()
         session = orf.ReferenceEvaluator(model)
         session.run(None, {"A": -np.arange(10).astype(np.float32)})
-
-
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
