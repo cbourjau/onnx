@@ -8601,6 +8601,29 @@ class TestReferenceEvaluator:
         )
         assert_array_equal(got, np.array(expected, dtype=np.int64).reshape(-1, 3))
 
+    @pytest.mark.skipif(
+        importlib.util.find_spec("PIL") is None, reason="Pillow not installed"
+    )
+    @pytest.mark.parametrize(
+        "encoded",
+        [
+            b"%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 1 1\nshowpage\n%%EOF\n",
+            # 1x1 GIF
+            (
+                b"GIF89a\x01\x00\x01\x00\x00\x00\x00,\x00\x00\x00\x00"
+                b"\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+            ),
+        ],
+        ids=["eps", "gif"],
+    )
+    def test_image_decoder_rejects_unsupported_format(self, encoded) -> None:
+        import PIL  # noqa: PLC0415
+
+        node = make_node("ImageDecoder", ["X"], ["Y"])
+        ref = ReferenceEvaluator(node)
+        with pytest.raises(PIL.UnidentifiedImageError):
+            ref.run(None, {"X": np.frombuffer(encoded, dtype=np.uint8)})
+
 
 class TestReferenceEvaluatorShapeAnnotationChecking:
     """Tests for the opt-in runtime shape-annotation validation feature

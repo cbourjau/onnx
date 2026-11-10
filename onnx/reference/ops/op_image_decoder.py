@@ -10,6 +10,10 @@ import numpy as np
 
 from onnx.reference.op_run import OpRun
 
+# Pillow format identifiers of the image formats listed in the operator
+# specification. Pillow's 'PPM' plugin covers PBM, PGM, PPM, and PNM.
+_SUPPORTED_FORMATS = ("BMP", "JPEG", "JPEG2000", "TIFF", "PNG", "WEBP", "PPM")
+
 
 class ImageDecoder(OpRun):
     def _run(self, encoded: np.ndarray, pixel_format="RGB") -> tuple[np.ndarray]:
@@ -19,7 +23,7 @@ class ImageDecoder(OpRun):
             raise ImportError(
                 "Pillow must be installed to use the reference implementation of the ImageDecoder operator"
             ) from e
-        img = PIL.Image.open(io.BytesIO(encoded.tobytes()))
+        img = PIL.Image.open(io.BytesIO(encoded.tobytes()), formats=_SUPPORTED_FORMATS)
         if pixel_format == "BGR":
             decoded = np.array(img)[:, :, ::-1]
         elif pixel_format == "RGB":
